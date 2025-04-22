@@ -138,9 +138,6 @@
             inheritAttrs: false,
         }
   ```
-
-
-
 ### 子传父
 - 子传父也需要子和父配合,一个明显区别是: ==父传子是自动的,子传父是被动的,需要触发==
 - ==**父组件方面**==: (==在子组件自定义一个事件==)
@@ -442,167 +439,6 @@
       });
       </script>
     ```
-### 跨域通信的案例(不安全的方式)X
-- ==解决中间人办法时,**但是App公开了自己的this,所以不安全**==
-- ==实现功能,**点击Tabar里的TabarItem标签时,Navbar头标文字对应改变**==
-- 效果图:[![pAwqPPA.png](https://s21.ax1x.com/2024/10/26/pAwqPPA.png)](https://imgse.com/i/pAwqPPA)
-- 代码:(==截取关键重点部分==)
-- 简单介绍组件关系: ==App是总组件,Navbar和Tabar是兄弟关系,都是App的儿子,在App里并列使用,Tabar有个儿子TabarItem==
-  - App代码(==公开自己和**设置状态navTitle**==)
-    ```
-        data(){
-            return{
-                navTitle: "首页111"
-            }
-        },
-        provide(){
-            return {
-                app : this
-            }
-        },
-    ```
-  - Navbar(==接受app的信息,实时改变头栏的信息==)
-    ```
-        <template>
-            <div>
-                <button>返回</button>
-                // 使用app的navTitle状态
-                <span>{{app.navTitle}}</span>
-                <button>首页</button>
-            </div>
-        </template>
-
-        <script>
-            export default{
-                // 注入,承接App的provide
-                inject:["navTitle","app"]
-            }
-        </script>
-    ```
-    - Tabar(==配置TabarItem的信息,自己本身没啥内容==)
-    ```
-        template:
-            // 通过v-for提取datalist数据,再父传子把data通过item动态绑定给子组件
-            <TabarItem v-for="data in datalist" :key="data" :item="data"></TabarItem>
-
-        js:
-            data(){
-                return {
-                    datalist : ["首页","列表","我的"]
-                }
-            }
-    ```
-    - TabarItem(==构建li结构,改变app的navTitle值==)
-    ```
-        template:
-            <li @click="handleClick">{{ item }}</li>
-        js:
-            // 接受父传子: 
-            props: ["item"],
-            methods:{
-                handleClick(){
-                    // 修改App的navTitle为选项名字item
-                    this.app.navTitle = this.item
-                }
-            },
-            // 接受公开数据: 
-            inject:["navTitle","app"]
-    ```
-    > 总结: ==App公开自己,设置了状态navTitle,**这个navTitle是关键**,TabarItem通过点击处理函数改变app中navTitle的值,这时Navbar实时获取App内的navTitle的信息,实现了和TabarItem传输数据的同步,**这是一个间接影响,中间人是App的状态navTitle**==
-### 订阅发布模式X
-- ==更深层的知识思路,详见kerwin录制的js高级设计模式(6h+),详细讲过"订阅-发布模式",这是个纯js思路的新思维,**订阅发布模式是vuex的基石**==
-- **本节课为最简单的模式逻辑,更深入的看看课程,如下**
-- store.js文件(新建js文件)
-    ```
-        // 看kerwin的js设计模式(6h)学习更多~
-        export default{
-            datalist:[], // 存储
-            subscribe(cb){ // 订阅
-                this.datalist.push(cb)
-                console.log(this.datalist)
-            },
-            publish(value){ // 发布
-                // 遍历datalist数组,每一项cb都是一个函数,并调用
-                // 发布时携带参数,执行携带参数的回调函数
-                this.datalist.forEach(cb=>cb(value))
-            }
-        }
-    ```
-    > 分为三部分
-    > 1.datalist是函数存储箱,放函数的
-    > 2.subscribe订阅函数,作用是把函数作为参数传入,再把函数放入数组datalist
-    > 3.publish发布函数,作用是遍历datalist数组,把里面的所有函数执行一遍,并在执行发布函数publish时,传入参数value,这个value又会作为形参被传入datalist内部的每个函数中执行
-    > ==注意: 使用订阅发布模式,别忘了把js文件引入!==
-### 非父子通信-订阅发布案例+mounted函数X
-- ==本案例是**使用"订阅-发布模式"(和父子通信完全无关)去解决跨域通信案例**,属于跳出五行外不在三界中了==
-> 
-- ==**引入新概念生命周期函数mounted()**(在Navbar使用了):Navbar组件挂载到页面中时,会立即自动执行内部代码,输入另起一行的新方法,mounted(){.....}==
-- 代码:
-- store.js(==**核心,纯js,和上面的例子一样的,这里不写了**==)
->
-- Tabar(==**还是构建TabarItem,没变,详见跨域通信案例,这里也不写了**==)
->
-- Navbar:(==订阅函数,函数内容为接受参数value,修改自己的title==)
-    ```
-        <template>
-            <div>
-                <button>返回</button>
-                <span>{{ title }}</span>
-                <button>首页</button>
-            </div>
-        </template>
-
-        <script>
-            import store from './store.js'
-
-            export default{
-                data(){
-                    return {
-                        title: "首页"
-                    }
-                },
-                // 纯js方法-订阅方法模式-vuex的重要基石
-                // 提前引入生命周期-mounted()概念, Navbar组件挂载到页面中时,会立即自动执行内部代码
-                mounted(){
-                    // console.log("12345")
-                    // 订阅方法执行 ---> 把回调函数放入datalist数组
-                    // 订阅方法传递的回调函数是自带参数的,配合发布时传入参数
-                    store.subscribe((value)=>{
-                        console.log("我被触发了",value)
-                        this.title = value
-                    })
-                } 
-            }
-        </script>
-    ```
-- TabarItem:(==发布函数,把自己的item作为参数传入并执行函数==)
-    ```
-        <template>
-            <li @click="handleClick">{{ item }}</li>
-        </template>
-
-        <script>
-            import store from './store.js'
-
-            export default {
-                props: ["item"],
-                methods:{
-                    handleClick(){
-                        // 点击按钮进行发布调用
-                        // 传递参数给store,发布时带上这个参数
-                        store.publish(this.item)
-                    }
-                },
-            }
-        </script>
-    ```
-> 总结: 
-> ==1.store.js文件中定义:== 
-> 订阅函数: 只用传递函数进入数组即可 ; 发布函数: 执行所有存入数组的函数,并且可以携带一个参数,作为执行函数的形参
-> 2.==Navbar==: 订阅了一个函数进入数组,函数要求传递参数,这个参数将会赋值给自己的title状态(我们看代码就知道这个状态是头栏的文字显示状态)
-> 3.==TabarTitle==:发布函数,因为数组就一个Navbar订阅的函数,所以就执行它一个,然后传递参数,这个参数正是底栏的文字显示item,通过点击触发
-> 4.==本案例纯使用"订阅-发布"思路完成,是最简单的订阅发布模式,没有用任何父子通讯的知识==
-
 ## 组件进阶
 ### 动态组件+keep-alive
 - ==**提示:组件的基本用法忘了去看Vue CLi项目构建章节的自定义标签和局部组件的相关知识**==
@@ -853,14 +689,14 @@
 ### 具名插槽
 - ==具名插槽==: 想要实现多个插槽,需要给每个"卡槽"命名,这样使用者就可以根据"卡槽"名,把自己的代码("磁带卡")分门别类地插入自己想要的对应位置("卡槽")
 - 代码(==子,卡槽命名==)
-  ```
+  ```html
     <!-- 插槽 -->
     <slot name="one"></slot>
         child
     <slot name="two"></slot>
   ```
 - 代码(==父,按名字找卡槽位置,**有简写方法**==):
-  ```
+  ```html
     // template自己不会显示
     <template v-slot:one>
             <div>app111111</div>
@@ -1190,465 +1026,6 @@
   > ==重点2==: 多个组件使用同一个window挂载方法,只要其中一个销毁,其他的组件也会跟着销毁掉,例如引入Child和Child2两个组件都有window的onresize,如果销毁Child时把onresize也销毁了,那么Child2中的onresize也会失效
   > ==思考==: 看代码,子和父的mounted都有一段打印,谁会先打印
   > ==答==:孩子的mounted先于父的mounted执行,因为父在执行到mounted阶段时,所有的dom都已经完成配置了,可以访问了,这时Child组件作为在template里面的一份子,早就执行完了dom配置
-
-## 指令(组合式和选项式相同)
-### 指令写法与钩子
-- 指令: 自定义的v-XXX,可以获取所附标签的dom节点,并且能获取对节点输入的数据
-- 指令需要挂在,分为全局和局部,一下是指令的创建与挂载代码
-  ```
-    tem:
-    // 指令创建
-    <div v-kerwin>12341124</div>
-
-    js:
-    // 1.局部定义指令,只能在本文件使用
-    directives: {
-        kerwin: {
-            ....
-        }
-    }
-    ----------------------
-    // 2.全局挂载指令
-    // main.js(vite项目的vue入口):
-    var app = createApp(App)
-    app.directive("kerwin", {
-        ......
-    })
-    app.mount('#app')
-  ```
-- ==指令的应用,有两个参数el和binding==
-  ```
-    tem:
-    <div v-kerwin="'red'">asdfdaas</div>
-    <div v-kerwin="color">asdfdaas</div>
-
-    js:
-    directives: {
-        kerwin: {
-            // 1.在mounted和updated阶段常用
-            mounted(el,binding) { 
-                // el: 会获取使用这个自定义指令标签的dom节点
-                // binding,内部有许多属性,最有用的是value,会存储每次使用kerwin指令时传入的值,状态同理
-                console.log("当前节点插入父节点时调用", el,binding)
-                // 因为不同标签的dom节点不同,所以多个带有v-kerwin的标签传入的值虽然不同,但也互不影响,人家针对dom追踪并赋值binding.value
-                el.style.background = binding.value
-            },
-            updated(el,binding){
-                el.style.background = binding.value
-            }
-        }
-
-        -----------------------
-        // 2.简写 函数形式,会在mounted和updated阶段自动调用
-        kerwin(el,binding){
-            el.style.background = binding.value
-        }
-    }
-  ```
-  > ==当标签被创建后el会获取其dom节点,binding.value会存储v-XXX输入的值,无论是直接输入的还是状态,都会获取到值==
-  > 代码中的v-kerwin="XXX"的作用就是输入XXX是你的背景颜色变为XXX色
-### 指令的应用
-- ==指令的应用又是解决datalist没数据和new Swiper之间的方案== 
-- 代码:
-  ```
-    <template>
-        <!-- class名字和结构需要留着,这是响应css和js的html结构 -->
-        <div class="swiper">
-            <div class="swiper-wrapper">
-                <!-- v-swipe只能传一个参数,包装进对象 -->
-                <!-- 把v-swipe封装好了后,挂在全局,这样任何人可以直接使用你的自定义组件,只需要传递对应的参数就可以完美使用了 -->
-                <!-- 具有复用性最好的还是组件,也就是官方的那个swiper Vue,看文档学习学习人家的组件如何用 -->
-                <div class="swiper-slide" v-for="(data, index) in datalist" :key="data" v-swipe="{
-                    index: index,
-                    length: datalist.length
-                }">
-                    {{ data }}
-                </div>
-            </div>
-            <div class="swiper-pagination"></div>
-        </div>
-    </template>
-
-    <script>
-        import Swiper from 'swiper/bundle';
-        import 'swiper/css/bundle';
-
-        export default {
-            data() {
-                return {
-                    datalist: []
-                }
-            },
-            directives: {
-                swipe: {
-                    mounted(el, binding) { // 它会等待所依附的节点dom创建完毕时才会执行,所以此时datalist起码不为空了
-                        console.log(el, binding.value);
-                        // 但是还有个问题,每个带有v-swipe的标签创建都会调用一次mounted,会多次new Swiper
-                        // 在最后一个节点 new Swiper , 防止多次初始化 new Swiper
-                        let { index, length } = binding.value
-                        if (index === length - 1) {
-                            console.log("最后一个节点")
-                            var mySwiper = new Swiper('.swiper', {
-                                loop: true, // 循环模式选项
-                                pagination: { // 如果需要分页器
-                                    el: '.swiper-pagination',
-                                },
-                                // 和循环在一起出BUG
-                                on: {
-                                    slideChange: function () {
-                                        console.log('改变了,activeIndex为', this.activeIndex);
-                                    }
-                                }
-                            })
-
-                        }
-                    }
-                }
-            },
-            //dom创建好再给配swiper样式
-            mounted() {
-                // 模拟ajax 1.5s
-                setTimeout(() => {
-                    this.datalist = ["111", "222", "333"]
-                }, 1500)
-            },
-        }
-    </script>
-
-
-    <style>
-        .swiper {
-            width: 600px;
-            height: 300px;
-        }
-    </style>
-  ```
-  - ==代码重点解析==
-  - ==把组件v-swipe挂在创建分页的li上面,li内部就是data数据,创建new Swiper的代码写在指令的里面(即js的directives里面),**只有当datalist有数据时,li才会被创建,这时指令才会生效,li没创建,它里面挂载的v-swipe也就没响应,保证了先有数据后new Swiper**==
-  - ==衍生问题==: 每创建出一个li,就会调用一次v-swipe,就会new Swiper一次,多次new Swiper会让样式出现BUG
-    - ==解决方案==: 就是让v-swipe识别这是最后一个li,这时new Swiper正好,这时传入数组长度和数组本次遍历的序列index,指令只接受对象,用对象封装传入,从binding.value中结构出来,进行简单计算即可(数组长度-1 = index时为数组的最后一项,也是li的最后一项)
-### 过渡效果+案例
-- ==vue + css3实现动画效果==,有Transition和TransitionGroup两个,本节先讲Transition,这时个组件,内部写的元素会添加css3的动画效果,需要style的配置
-- - ==**进入或离开可以由以下的条件之一触发**==
-    1.由 v-if 所触发的切换
-    2.由 v-show 所触发的切换
-    3.由特殊元素 <component> 切换的动态组件
-    4.改变特殊的 key 属性 
-- ==本节课案例代码只涉及1和2的过渡==
-- 代码:(==方法1 transition==)
-  ```
-    <template>
-        <div>
-            <button @click="isShow = !isShow">click</button>
-            <Transition>
-                <!-- 内置组件transition + 插槽 -->
-                <!-- 作用是给内部标签在合适时机添加class和删除class -->
-                <div v-show="isShow">123456</div>
-            </Transition>
-        </div>
-    </template>
-
-    <style>
-        .v-enter-active,
-        .v-leave-active {
-            /* 还是css3的语法,这里写过渡样式 */
-            transition: all 5s ease;
-        }
-
-        .v-enter-from,
-        .v-leave-to {
-            /* 这里写过渡目标 */
-            opacity: 0;
-            transform: translateX(100px)
-        }
-
-        html,
-        body {
-            overflow-x: hidden;
-        }
-    </style>
-  ```
-  - ==代码解释==: 点击按钮使得Transition组件内部的div消失出现子代css3动画效果,==其中style是固定的,如上代码注释,一部分负责写过渡样式,一部分写过渡目标==
-- 代码:(animation)
-  ```
-    <template>
-        <div>
-            <button @click="isShow = !isShow">click</button>
-            <!-- 命名,防止组件混用css样式 -->
-            <!-- 添加appear可以实现第一次的自启动 -->
-            <Transition name="kerwin" appear mode="out-in">
-                <!-- 内置组件transition + 插槽 -->
-                <!-- 作用是给内部标签在合适时机添加class和删除class -->
-                <!-- Transition组件只允许内部有一个组件或孩子 -->
-                <!-- 但是可以这么写,同一时间段只有一个孩子,v-if elif ... else -->
-                <!-- mode = out-in/in-out 意为 先出后进/先进后出 -->
-                <div v-if="isShow">123456</div>
-                <div v-else>00000</div>
-            </Transition>
-        </div>
-    </template>
-
-    <style>
-        /* animation写法 */
-        /* 改名了所以把 v 全部改为 kerwin */
-
-        /* 进入 */
-        .kerwin-enter-active {
-            animation: kerwinanimate 1s;
-        }
-
-        /* 离开 */
-        .kerwin-leave-active {
-            animation: kerwinanimate 1s reverse;
-        }
-
-        @keyframes kerwinanimate {
-
-            /* 0%->100%是进场动画 */
-            0% {
-                transform: translateX(100px);
-                opacity: 0;
-            }
-
-            100% {
-                transform: translateX(0px);
-                opacity: 1;
-            }
-        }
-
-        html,
-        body {
-            overflow-x: hidden;
-        }
-    </style>
-  ```
-  - ==代码介绍==
-    - 1.Transition的==新属性name="kerwin" |appear |mode="out-in"==
-      - name:==命名的,多个Transition的不同样式不会混淆,**具体体现在style的class命名上**==,看代码,原有的2对class样式变为2个,少了一半,==同时v-XX-XX的'v'是改名处,改为kerwin-XX-XX,**这样对应的class样式服务对应的Transition组件的插槽**==
-      - appear: 初始化时,即页面第一次加载时,执行一次动画
-      - mode: out-in是先出后进,in-out是先进后出,应对的是组件内多个孩子的进出场问题,不写的话,会同进同处的一小段时间内拥挤堆在一起
-    - 2.==Transition是不允许同一时间存在多个孩子的,**但是由v-if/elif/else组成的多个孩子就可以和谐地在Transition组件中,因为它们在同一时间只能有一个孩子显示,这是允许的,同时上面的mode属性就是解决这个v-if/else多个孩子进出场拥挤问题的**==
-    - 3.annimation正常写语法没变,==只需注意对应的class是进场还是出场即可==
-- 代码3(==最简单的一个,引入animate.css组件,看官网教程即可==)
-  ```
-    <template>
-        <div>
-            <button @click="isShow = !isShow">click</button>
-            <!-- 固定的属性 进入enter-active-class/离开leave-active-class + 网站复制过来的的样式(注意animate__animated是必需品) -->
-            <Transition enter-active-class="animate__animated animate__bounceIn" leave-active-class="animate__animated animate__bounceOut"> 
-                <div v-if="isShow">123456</div>
-            </Transition>
-        </div>
-    </template>
-
-    <script>
-        // 导入animate.css模块
-        import 'animate.css';
-    </script>
-  ```
-  > 当年学css3的时候就见过这个animate.css,只需要把它npm下载到本地,==分为进enter-active-class和出leave-active-class两个class==,看着官网配置对应的class名即可获取对应的样式即可,**官网有详细教程**
-### 列表过渡
-- ==TransitionGroup组件内同时容纳多个孩子,最典型的就是v-for==
-- 代码:(对06增删列表的案例加动画效果)
-  ```
-    <template>
-    <!-- 增加,删减表单案例 -->
-    <div>
-        <input type="text" v-model="mytext">
-        <button @click="handleAdd">add</button>
-
-        <!-- ... group可容纳多个孩子 -->
-        <!-- 还可以实例化成ul标签 -->
-        <TransitionGroup tag="ul" name="kerwin">
-            <!-- 不加key就没有效果,为了给唯一身份,方便样式操作 -->
-            <!-- -->
-            <!-- 这样子则不允许我们写相同的item添加进列表 -->
-            <!-- 当然我们也可以"item + 时间戳"的组合去杜绝重复id -->
-            <li v-for="(item, index) in datalist" :key="item">
-                {{ item }} <button @click="handleDel(index)">del</button>
-            </li>
-        </TransitionGroup>
-
-
-        <div v-show="datalist.length === 0">暂无数据</div>
-    </div>
-    </template>
-
-    <script>
-    export default {
-        data() {
-            return {
-                mytext: "",
-                datalist: ["111", "222", "333"],
-            }
-        },
-        methods: {
-            handleAdd() {
-                // console.log(this.mytext)
-                if (this.mytext === "") { // 不写东西就不添加
-                    return
-                } else {
-                    this.datalist.push(this.mytext)
-                    this.mytext = "" // add后清空输入框,双向绑定的优势体现出来了
-                }
-            },
-
-            handleDel(index) {
-                // 删除数组的方法 splice Api
-                this.datalist.splice(index, 1)
-            }
-        }
-    }
-
-
-    </script>
-
-    <style>
-    /* animation写法 */
-    /* 改名了所以把 v 全部改为 kerwin */
-
-    /* 进入 */
-    .kerwin-enter-active {
-        animation: kerwinanimate 1s;
-    }
-
-    /* 离开 */
-    .kerwin-leave-active {
-        animation: kerwinanimate 1s reverse;
-    }
-
-    @keyframes kerwinanimate {
-
-        /* 0%->100%是进场动画 */
-        0% {
-            transform: translateX(100px);
-            opacity: 0;
-        }
-
-        100% {
-            transform: translateX(0px);
-            opacity: 1;
-        }
-    }
-
-    html,
-    body {
-        overflow-x: hidden;
-    }
-
-    /* 更加平滑,list不是固定的,改名了就为kerwin-move 和 kerwin-leave-active了 */
-    /* 时间长短比动画animation设置的长一点会好看,即删除移走后,选项缓慢填补 */
-    .kerwin-move{
-        transition: all 1.5s ease;
-    }
-    .kerwin-leave-active {
-    position: absolute;
-    }
-    </style>
-  ```
-  - ==代码重点解析==
-    - 1.==TransitionGroup可以实例化成ul标签,tag属性后面跟着标签名,可以减少一层嵌套==
-    - 2.==**不加key就没有效果**,给唯一身份进行样式操作==
-    - 3.==key不能是index索引,涉及diff问题,也不能重复,可以用key+时间戳拼接去设置不重复的key值==
-    - 4.为何不能是index,解释如下
-        ==**看不懂去看kerwin的课064列表过渡,12min左右**==
-      - 如果key值为index, 重温习diff算法,按照索引index对比,相同的复用,不同的重写,没有的删除,最后如果你删除了index=2的项,会有index=1复用,index=2没了,原index=3顶上,和未删减的index=2对比,发现变了,222转为333,然后最后index=3顶上了,删减版对比原数据没有index=3了,遵循没有的删除,index=3会被删除,删除的永远是最后一项,而非你点击的第二项,最后结果是index=1不变,index=2的数值由222变333,index=3被删除(而你del的是index=2哦,发现在diff下,index为key真乱啊,所以确保key的唯一性)
-    - 5.==更加平滑的动画改进,也是固定写法,也可以被改名,即v-move和v-leave-active的'v',时间长短比动画animation设置的长一点会好看==
-### 可复用过渡
-- 和我们自己造基于swiper的myswiper组件一样,这次我们基于Transition组件造我们自己的KerwinTransition组件
-- 代码(App,父,==导入组件过程略==)
-  - ==把动画再次二次封装成动画效果组件 + 插槽==
-  - ==组件内核是Transition,所以不要放多个孩子,特指同一时间点==
-  ```
-    <template>
-        <div>
-            <button @click="isShow = !isShow">click</button> 
-            <!-- 再添加些可以父传子的属性指导 -->
-            <!-- ltor = left to right 从左到右的动画 -->
-            <!-- rtol = right to left 从右到左的动画 -->
-            <KerwinTransition myname="rtol">
-                <div v-if="isShow">1234567</div>
-            </KerwinTransition>
-        </div>
-    </template>
-  ```
-
-  - 组件KerwinTransition
-    - ==给父提供了一个父传子的自定义选择,myname接受父组件信息动态绑定到插槽内的Transition组件name上,从而确定动画位移效果,不同的name对应不同的class名字,在class内部定义不同的css动画==
-  ```
-    <template>
-        <div>
-            <Transition :name="myname" appear mode="out-in">
-                <slot></slot>
-            </Transition>
-        </div>
-    </template>
-
-    <script>
-        export default{
-            props:["myname"]
-        }
-    </script>
-
-    <style>
-        /* 进入 */
-        /* ltor = left to right 从左到右的动画 */
-        /* 同理 rtol = right to left 从右到左的动画 */
-        .ltor-enter-active {
-            animation: kerwinanimate 1s;
-        }
-
-        /* 离开 */
-        .ltor-leave-active {
-            animation: kerwinanimate 1s reverse;
-        }
-
-        @keyframes kerwinanimate {
-
-            /* 0%->100%是进场动画 */
-            0% {
-                transform: translateX(-100px);
-                opacity: 0;
-            }
-
-            100% {
-                transform: translateX(0px);
-                opacity: 1;
-            }
-        }
-
-        // ----------------------------------
-
-        .rtol-enter-active {
-            animation: kerwinanimate2 1s;
-        }
-
-        /* 离开 */
-        .rtol-leave-active {
-            animation: kerwinanimate2 1s reverse;
-        }
-
-        @keyframes kerwinanimate2 {
-
-            /* 0%->100%是进场动画 */
-            0% {
-                transform: translateX(100px);
-                opacity: 0;
-            }
-
-            100% {
-                transform: translateX(0px);
-                opacity: 1;
-            }
-        }
-
-        html,
-        body {
-            overflow-x: hidden;
-        }
-    </style>
-  ```
-
 
 ## VCA组合式写法
 ### 初识VCA
@@ -3564,4 +2941,558 @@
     }
     ```
     > 此代码应用了window的原生方法confirm,推荐自己做个好看的组件
+
+## 自定义指令
+### 指令写法
+- 指令: 除了v-show,v-for,v-model等,可以自定义的v-XXX,可以获取所附标签的dom节点,并且能获取对节点输入的数据
+- ==通常用于对DOM进行底层操作,相当于js获取到dom对象后进行各种底层操作==
+- 案例: 给input元素添加自动焦点
+- ==1.老方法,ref做法==
+  ```html
+    <template>
+      <div class="app">
+        <input type="text" ref="inputRef">
+      </div>
+    </template>
+
+    <script setup>
+    import { onMounted, ref } from 'vue'
+
+    const inputRef = ref()
+    // 等待dom节点挂载完后,再获取dom并注入焦点focus()
+    onMounted(() => {
+      inputRef.value.focus()
+    })
+    </script>
+  ```
+  > 通过ref获取到dom节点后,在onMounted中完成自动聚焦
+- ==2.指令用法,vue2的选项式写法,局部挂载,**el参数**==
+  ```html
+    <template>
+      <div class="app">
+        <input type="text" v-focus>
+      </div>
+    </template>
+
+    <script>
+    // options API (vue2)
+    export default {
+      directives: {
+        focus: {
+          // v-focus的标签被挂载后,获取el,el为这个元素的dom节点
+          mounted(el) {
+            el?.focus()
+          }
+        }
+      }
+    }
+    </script>
+  ```
+  > 通过directives挂载,把指令的名字(v-XXX)写在里面,可以多个
+- ==3.setup语法糖挂载==
+  ```js
+    <script setup>
+      // setup语法糖内的写法
+      const vFocus = {
+        mounted(el) {
+          el?.focus()
+        }
+      }
+    </script>
+  ```
+### 指令全局注册
+- 指令需要挂载,分为全局和局部,局部已经演示
+- ==1.main.js直接挂载==
+  ```js
+    // 指令全局挂载,指令可能很多,所以抽取一下
+    app.directive('focus',{
+      mounted(el) {
+        el?.focus()
+      }
+    })
+  ```
+  > 指令多了会使main.js冗余
+- ==2.抽取方法==
+- 创建directives文件夹,内部index.js(总领文件)和功能文件(例如focus.js)
+- focus.js
+  ```js
+    export default function directiveFocus (app) {
+      // 全局挂载
+      app.directive('focus',{
+        mounted(el) {
+          el?.focus()
+        }
+      })
+    }
+  ```
+- index.js
+  ```js
+    import directiveFocus from './focus'
+
+    export default function useDirectives(app){
+      // 依次执行全局挂载的指令
+      directiveFocus(app)
+    }
+  ```
+  > 可以引入多个指令,依次挂载,只需要在main.js中传入app示例
+- main.js
+  ```js 
+    import useDirectives from './8-cdy/directives'
+
+    // 简化抽取后的挂载
+    useDirectives(app)
+  ```
+  > 只有一行代码,简化抽取
+### 指令生命周期函数
+- ==指令内部的代码只能写在生命周期函数内部==
+- 指令生命周期
+  - 1.create: 元素被创建,但是元素的属性和事件应用之前调用
+      ```html
+        <!-- 比如div已经被创建,但是内部class,@click事件还没有创建监听 -->
+        <div class="name" @click="itemClick"></div>
+      ```
+  - 2.beforeMount/mounted(*): 组件元素被挂载前/挂载后(dom对象所有的东西均被创建)
+  - 3.beforeUpdate/updated(*): 组件元素被改变之前/组件元素被改变之后
+  - 4.beforeUnmount(*)/unmounted:在卸载父组件之前调用/卸载后调用 (==可以对组件/元素设置v-if测试==)
+### 指令参数和修饰符
+- vue内置的指令v-model
+  ```html
+    <Counter v-model:title="message"></Counter>
+  ```
+  > ==这个title是参数,message是参数值,意为绑定到元素的title属性上==
+  > ==如果不写参数,v-model='message',默认绑定到value上,两者都可以通过bindings.value获取这个值==
+- 自定义指令示例
+  ```html
+    <div v-why:name="message">123</div>
+  ```
+  ```js
+    <script setup>
+      const message = 'hello world!'
+      const vWhy = {
+        mounted(el,bindings){
+          // bindings.value就是传入的参数值
+          console.log(el,bindings)
+          el.textContent = bindings.value
+        }
+      }
+    </script>
+  ```
+- ==2.还可以添加指令的修饰符,例如内置vue指令就有自己的修饰符`.stop .once .lazy`==
+- 自定义指令修饰符自己随意加,==用处不大==
+  ```html
+    <div v-why:name.abc.cba.nba="message">123</div>
+  ```
+  > 在 mounted 钩子函数中，通过 binding.modifiers 对象来检查是否存在特定的修饰符。若存在相应的修饰符，就为元素设置对应的样式。
+### 时间格式化案例
+- ==服务器返回时间一般返回时间戳==
+- 可以使用自定义指令格式化时间,一种新的格式化时间的方式,之前用的utils内的函数
+- ==全局注册自定义组件v-ftime,代码略==
+  ```html
+    <div class="app">
+      <h2 v-ftime="'YYYY/MM/DD'">{{ new Date() }}</h2>
+      <h2 v-ftime>{{ new Date() }}</h2>
+    </div>
+  ```
+  ```js
+    import dayjs from 'dayjs'
+    export default function directiveFtime(app){
+      app.directive('ftime',{
+        mounted(el,bindings){
+          // 获取时间戳
+          let timeStamp = el.textContent
+          // 获取传入的参数
+          let value = bindings.value
+          if(!value){
+            value = 'YYYY-MM-DD HH:mm:ss'
+          }
+          // 时间格式化
+          const formatTime = dayjs(timeStamp).format(value)
+          el.textContent = formatTime
+        }
+      })
+    }
+  ```
+### 自定义指令的优势
+- 比如格式化时间,比之前的utils函数和计算属性等方法简单(vue小项目的宏源旅途),代码简洁
+- 在TS+vue3的后台管理系统中,指令还可用于鉴定权限,权限不足的用户看不到一些按钮等
+### 过渡效果+案例 X
+- ==vue + css3实现动画效果==,有Transition和TransitionGroup两个,本节先讲Transition,这时个组件,内部写的元素会添加css3的动画效果,需要style的配置
+- - ==**进入或离开可以由以下的条件之一触发**==
+    1.由 v-if 所触发的切换
+    2.由 v-show 所触发的切换
+    3.由特殊元素 <component> 切换的动态组件
+    4.改变特殊的 key 属性 
+- ==本节课案例代码只涉及1和2的过渡==
+- 代码:(==方法1 transition==)
+  ```
+    <template>
+        <div>
+            <button @click="isShow = !isShow">click</button>
+            <Transition>
+                <!-- 内置组件transition + 插槽 -->
+                <!-- 作用是给内部标签在合适时机添加class和删除class -->
+                <div v-show="isShow">123456</div>
+            </Transition>
+        </div>
+    </template>
+
+    <style>
+        .v-enter-active,
+        .v-leave-active {
+            /* 还是css3的语法,这里写过渡样式 */
+            transition: all 5s ease;
+        }
+
+        .v-enter-from,
+        .v-leave-to {
+            /* 这里写过渡目标 */
+            opacity: 0;
+            transform: translateX(100px)
+        }
+
+        html,
+        body {
+            overflow-x: hidden;
+        }
+    </style>
+  ```
+  - ==代码解释==: 点击按钮使得Transition组件内部的div消失出现子代css3动画效果,==其中style是固定的,如上代码注释,一部分负责写过渡样式,一部分写过渡目标==
+- 代码:(animation)
+  ```
+    <template>
+        <div>
+            <button @click="isShow = !isShow">click</button>
+            <!-- 命名,防止组件混用css样式 -->
+            <!-- 添加appear可以实现第一次的自启动 -->
+            <Transition name="kerwin" appear mode="out-in">
+                <!-- 内置组件transition + 插槽 -->
+                <!-- 作用是给内部标签在合适时机添加class和删除class -->
+                <!-- Transition组件只允许内部有一个组件或孩子 -->
+                <!-- 但是可以这么写,同一时间段只有一个孩子,v-if elif ... else -->
+                <!-- mode = out-in/in-out 意为 先出后进/先进后出 -->
+                <div v-if="isShow">123456</div>
+                <div v-else>00000</div>
+            </Transition>
+        </div>
+    </template>
+
+    <style>
+        /* animation写法 */
+        /* 改名了所以把 v 全部改为 kerwin */
+
+        /* 进入 */
+        .kerwin-enter-active {
+            animation: kerwinanimate 1s;
+        }
+
+        /* 离开 */
+        .kerwin-leave-active {
+            animation: kerwinanimate 1s reverse;
+        }
+
+        @keyframes kerwinanimate {
+
+            /* 0%->100%是进场动画 */
+            0% {
+                transform: translateX(100px);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateX(0px);
+                opacity: 1;
+            }
+        }
+
+        html,
+        body {
+            overflow-x: hidden;
+        }
+    </style>
+  ```
+  - ==代码介绍==
+    - 1.Transition的==新属性name="kerwin" |appear |mode="out-in"==
+      - name:==命名的,多个Transition的不同样式不会混淆,**具体体现在style的class命名上**==,看代码,原有的2对class样式变为2个,少了一半,==同时v-XX-XX的'v'是改名处,改为kerwin-XX-XX,**这样对应的class样式服务对应的Transition组件的插槽**==
+      - appear: 初始化时,即页面第一次加载时,执行一次动画
+      - mode: out-in是先出后进,in-out是先进后出,应对的是组件内多个孩子的进出场问题,不写的话,会同进同处的一小段时间内拥挤堆在一起
+    - 2.==Transition是不允许同一时间存在多个孩子的,**但是由v-if/elif/else组成的多个孩子就可以和谐地在Transition组件中,因为它们在同一时间只能有一个孩子显示,这是允许的,同时上面的mode属性就是解决这个v-if/else多个孩子进出场拥挤问题的**==
+    - 3.annimation正常写语法没变,==只需注意对应的class是进场还是出场即可==
+- 代码3(==最简单的一个,引入animate.css组件,看官网教程即可==)
+  ```
+    <template>
+        <div>
+            <button @click="isShow = !isShow">click</button>
+            <!-- 固定的属性 进入enter-active-class/离开leave-active-class + 网站复制过来的的样式(注意animate__animated是必需品) -->
+            <Transition enter-active-class="animate__animated animate__bounceIn" leave-active-class="animate__animated animate__bounceOut"> 
+                <div v-if="isShow">123456</div>
+            </Transition>
+        </div>
+    </template>
+
+    <script>
+        // 导入animate.css模块
+        import 'animate.css';
+    </script>
+  ```
+  > 当年学css3的时候就见过这个animate.css,只需要把它npm下载到本地,==分为进enter-active-class和出leave-active-class两个class==,看着官网配置对应的class名即可获取对应的样式即可,**官网有详细教程**
+### 列表过渡 X
+- ==TransitionGroup组件内同时容纳多个孩子,最典型的就是v-for==
+- 代码:(对06增删列表的案例加动画效果)
+  ```
+    <template>
+    <!-- 增加,删减表单案例 -->
+    <div>
+        <input type="text" v-model="mytext">
+        <button @click="handleAdd">add</button>
+
+        <!-- ... group可容纳多个孩子 -->
+        <!-- 还可以实例化成ul标签 -->
+        <TransitionGroup tag="ul" name="kerwin">
+            <!-- 不加key就没有效果,为了给唯一身份,方便样式操作 -->
+            <!-- -->
+            <!-- 这样子则不允许我们写相同的item添加进列表 -->
+            <!-- 当然我们也可以"item + 时间戳"的组合去杜绝重复id -->
+            <li v-for="(item, index) in datalist" :key="item">
+                {{ item }} <button @click="handleDel(index)">del</button>
+            </li>
+        </TransitionGroup>
+
+
+        <div v-show="datalist.length === 0">暂无数据</div>
+    </div>
+    </template>
+
+    <script>
+    export default {
+        data() {
+            return {
+                mytext: "",
+                datalist: ["111", "222", "333"],
+            }
+        },
+        methods: {
+            handleAdd() {
+                // console.log(this.mytext)
+                if (this.mytext === "") { // 不写东西就不添加
+                    return
+                } else {
+                    this.datalist.push(this.mytext)
+                    this.mytext = "" // add后清空输入框,双向绑定的优势体现出来了
+                }
+            },
+
+            handleDel(index) {
+                // 删除数组的方法 splice Api
+                this.datalist.splice(index, 1)
+            }
+        }
+    }
+
+
+    </script>
+
+    <style>
+    /* animation写法 */
+    /* 改名了所以把 v 全部改为 kerwin */
+
+    /* 进入 */
+    .kerwin-enter-active {
+        animation: kerwinanimate 1s;
+    }
+
+    /* 离开 */
+    .kerwin-leave-active {
+        animation: kerwinanimate 1s reverse;
+    }
+
+    @keyframes kerwinanimate {
+
+        /* 0%->100%是进场动画 */
+        0% {
+            transform: translateX(100px);
+            opacity: 0;
+        }
+
+        100% {
+            transform: translateX(0px);
+            opacity: 1;
+        }
+    }
+
+    html,
+    body {
+        overflow-x: hidden;
+    }
+
+    /* 更加平滑,list不是固定的,改名了就为kerwin-move 和 kerwin-leave-active了 */
+    /* 时间长短比动画animation设置的长一点会好看,即删除移走后,选项缓慢填补 */
+    .kerwin-move{
+        transition: all 1.5s ease;
+    }
+    .kerwin-leave-active {
+    position: absolute;
+    }
+    </style>
+  ```
+  - ==代码重点解析==
+    - 1.==TransitionGroup可以实例化成ul标签,tag属性后面跟着标签名,可以减少一层嵌套==
+    - 2.==**不加key就没有效果**,给唯一身份进行样式操作==
+    - 3.==key不能是index索引,涉及diff问题,也不能重复,可以用key+时间戳拼接去设置不重复的key值==
+    - 4.为何不能是index,解释如下
+        ==**看不懂去看kerwin的课064列表过渡,12min左右**==
+      - 如果key值为index, 重温习diff算法,按照索引index对比,相同的复用,不同的重写,没有的删除,最后如果你删除了index=2的项,会有index=1复用,index=2没了,原index=3顶上,和未删减的index=2对比,发现变了,222转为333,然后最后index=3顶上了,删减版对比原数据没有index=3了,遵循没有的删除,index=3会被删除,删除的永远是最后一项,而非你点击的第二项,最后结果是index=1不变,index=2的数值由222变333,index=3被删除(而你del的是index=2哦,发现在diff下,index为key真乱啊,所以确保key的唯一性)
+    - 5.==更加平滑的动画改进,也是固定写法,也可以被改名,即v-move和v-leave-active的'v',时间长短比动画animation设置的长一点会好看==
+### 可复用过渡 X
+- 和我们自己造基于swiper的myswiper组件一样,这次我们基于Transition组件造我们自己的KerwinTransition组件
+- 代码(App,父,==导入组件过程略==)
+  - ==把动画再次二次封装成动画效果组件 + 插槽==
+  - ==组件内核是Transition,所以不要放多个孩子,特指同一时间点==
+  ```
+    <template>
+        <div>
+            <button @click="isShow = !isShow">click</button> 
+            <!-- 再添加些可以父传子的属性指导 -->
+            <!-- ltor = left to right 从左到右的动画 -->
+            <!-- rtol = right to left 从右到左的动画 -->
+            <KerwinTransition myname="rtol">
+                <div v-if="isShow">1234567</div>
+            </KerwinTransition>
+        </div>
+    </template>
+  ```
+
+  - 组件KerwinTransition
+    - ==给父提供了一个父传子的自定义选择,myname接受父组件信息动态绑定到插槽内的Transition组件name上,从而确定动画位移效果,不同的name对应不同的class名字,在class内部定义不同的css动画==
+  ```
+    <template>
+        <div>
+            <Transition :name="myname" appear mode="out-in">
+                <slot></slot>
+            </Transition>
+        </div>
+    </template>
+
+    <script>
+        export default{
+            props:["myname"]
+        }
+    </script>
+
+    <style>
+        /* 进入 */
+        /* ltor = left to right 从左到右的动画 */
+        /* 同理 rtol = right to left 从右到左的动画 */
+        .ltor-enter-active {
+            animation: kerwinanimate 1s;
+        }
+
+        /* 离开 */
+        .ltor-leave-active {
+            animation: kerwinanimate 1s reverse;
+        }
+
+        @keyframes kerwinanimate {
+
+            /* 0%->100%是进场动画 */
+            0% {
+                transform: translateX(-100px);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateX(0px);
+                opacity: 1;
+            }
+        }
+
+        // ----------------------------------
+
+        .rtol-enter-active {
+            animation: kerwinanimate2 1s;
+        }
+
+        /* 离开 */
+        .rtol-leave-active {
+            animation: kerwinanimate2 1s reverse;
+        }
+
+        @keyframes kerwinanimate2 {
+
+            /* 0%->100%是进场动画 */
+            0% {
+                transform: translateX(100px);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateX(0px);
+                opacity: 1;
+            }
+        }
+
+        html,
+        body {
+            overflow-x: hidden;
+        }
+    </style>
+  ```
+
+## Vue安装插件本质(了解)
+- app.use的本质: ==可传入的参数为对象或函数==
+  ```js
+    // 自动传入app实例
+    // 传入对象必须要install属性,属性值必须为函数
+    app.use({
+      install: function(app){
+        console.log('对象的install函数被自动执行',app)
+      }
+    })
+    // 直接传入函数
+    app.use(function(app){
+      console.log('传入的函数被自动执行',app)
+    })
+  ```
+- 之前的自定义组件函数可以改进一下
+  ```js
+    // 原来的: useDirectives(app)
+    app.use(useDirectives)
+  ```
+## 响应式原理(面试)
+
+
+
+
+
+
+## 内置组件(了解)
+### teleport
+- 类似于react的Portals,把组件从当前组件树移动到别的组件树下
+- ==有2个属性==
+  - to: 移动到的指定目标元素,可以使用选择器
+  - disabled: 是否禁用teleport功能
+  ```html
+    <div class="content">
+      <div class="item">
+        <teleport to="body">
+          <Hello></Hello>
+        </teleport>
+      </div>
+    </div>
+  ```
+  > 把组件挂载到body上面,而不是item里面; 除此之外还可以挂载到其他元素上面,to='#XX/.XX'(id/class)
+  > 多个teleport指向同一个,不会覆盖,会合并
+### suspense (略)
+- 不重要
+## 渲染函数(了解)
+### 认识h函数(略)
+- ==vue推荐绝大多数情况下使用模板templete创建HTML==
+- Vue在生成真实的DOM之前，会将我们的节点转换成VNode，而VNode组合在一起形成一颗树结构，就是虚拟DOM（VDOM）
+  - 事实上，==我们之前编写的template 中的HTML 最终也是使用渲染函数生成对应的VNode==
+  - 那么，如果你想充分的利用JavaScript的编程能力，我们可以自己来编写createVNode 函数，生成对应的VNode,不使用vue的template
+- ==h() 函数是一个用于创建vnode的一个函数==
+- 其实更准确的命名是createVNode() 函数，简化为 h() 函数,它们本质都一样
+- ==使用h函数接受参数(3个)== 
+  - 标签名字(div)
+  - 属性和值(class: 'name',title: '内容'),
+  - 是否有子元素,再写新的createVNode
 
