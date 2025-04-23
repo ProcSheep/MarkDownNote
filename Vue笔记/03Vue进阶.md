@@ -3437,6 +3437,277 @@
     </style>
   ```
 
+
+## 响应式原理(面试)
+### 认识响应式
+- 什么是响应式? 当js代码中变量发生改变时,对应的html中变量也会跟随变化
+- vue中的响应式,比如选项式的data(){},组合式的ref,reactive定义的变量,都会在template内部响应式变化
+- ==同时当一些数据发生变化时,改变的不仅仅是html,同时js中依赖这些数据的js代码也需要重新执行==
+  [![pEIWIrn.png](https://s21.ax1x.com/2025/04/23/pEIWIrn.png)](https://imgse.com/i/pEIWIrn)
+  > 有的函数内代码依赖响应式数据,有的不依赖,响应式执行函数时需要区分这些函数
+### 响应式依赖收集
+- ==1.基础收集==
+- 一旦函数中依赖的变量发生变化,所有的依赖函数都要执行一遍
+  ```js
+    const reactiveFns = []
+    function watchFn (fn){
+      reactiveFns.push(fn)
+      fn() // 一般第一次都会执行1次
+    }
+
+    // 手动添加依赖函数
+    watchFn(function foo(){
+      console.log('foo',obj.name)
+      console.log('foo',obj.age)
+      console.log('foo function')
+    })
+
+    watchFn(function bar(){
+      console.log('bar',obj.name)
+      console.log('bar',obj.age + 10)
+      console.log('bar function') 
+    })
+
+    // 依赖改变
+    obj.name = 'kiki'
+    // 所有依赖函数执行
+    reactiveFns.forEach(fn => fn())
+  ```
+  > 目前,凡是传入watchFn的函数都是响应式的,没有辨别功能
+- ==2.类封装响应式函数==
+- 一个数组reactiveFns是不够的,当多个响应式对象的函数都放入一个数组时,其中某个对象发生改变,不可能执行数组内所有的函数,所以设置类,每个对象拥有自己reactiveFns数组,只放自己对象的fn函数
+  ```js
+    class Depend{
+      constructor(){
+        this.reactiveFns = []
+      }
+      // 设置依赖
+      depend(fn){
+        this.reactiveFns.push(fn)
+      }
+      // 触发依赖
+      notify(){
+        this.reactiveFns.forEach(fn => fn())
+      }
+    }
+
+    // 实例之间互不影响,各自有各自的依赖函数数组
+    const tem = new Depend()
+    const obj = {name: 'cdy', age: 10}
+
+    function watchFn (fn){
+      tem.depend(fn)
+      fn() // 一般第一次都会执行1次
+    }
+
+    // 手动添加依赖函数
+    watchFn(function foo(){
+      console.log('foo',obj.name)
+      console.log('foo',obj.age)
+      console.log('foo function')
+    })
+
+    watchFn(function bar(){
+      console.log('bar',obj.name)
+      console.log('bar',obj.age + 10)
+      console.log('bar function') 
+    })
+
+    // 依赖改变
+    obj.name = 'kiki'
+    // 所有依赖函数执行
+    console.log('-----依赖执行-----')
+    tem.notify()
+  ```
+  > tem实例对象专门收集依赖obj对象的函数,依赖别的对象的函数不归tem实例对象管,实现分类有别
+### vue2的监听
+- 使用vue2-defineProperty自动化执行依赖函数,而不必每次都`tem.notify()`
+  ```js
+    // 方法1: Object.defineProperty() vue2
+    // 实现监听obj + 自动执行notify, tem实例对象负责obj的响应式,所以为tem.notify()
+    Object.keys(obj).forEach(key => {
+      let value = obj[key]
+      Object.defineProperty(obj,key,{
+        set: function (newValue){
+          // 不要写 obj[key] = newValue 会递归,因为这个操作本身也是set行为
+          value = newValue
+          tem.notify()
+        },
+
+        get: function(){
+          return value
+        }
+      })
+    })
+  ```
+  > 只需添加上面代码即可,先使用Object.keys获取obj对象所有的key,然后defineProperty监听这些属性,当属性修改时,执行set函数,记录修改的值,同时执行`tem.notify()`
+### 响应式自动监听(难点)
+- ==最难的点,首先理解数据结构==
+  [![pEIW5Ks.png](https://s21.ax1x.com/2025/04/23/pEIW5Ks.png)](https://imgse.com/i/pEIW5Ks)
+  > 1.两个map对象,其中一个是软引用WeakMap对象
+  > 2.1 先通过obj在objMap中找到obj映射的map对象
+  > 2.2 再通过key在map对象中找到key映射的dep实例对象
+  ```
+    /**
+    * 1.dep对象数据结构管理
+    * 每个对象的每一个属性对应一个dep对象
+    * 同一个对象的多个属性的dep对象是存放在一个map对象中的
+    * 多个对象的map对象,存放在一个objMap对象中
+    * 
+    * 2.依赖收集: 当执行get函数时,自动添加fn函数
+    */
+  ```
+- ==关键代码==
+- ==vue2-defineProperty内部代码重构==
+  ```js
+      Object.keys(obj).forEach(key => {
+      let value = obj[key]
+      Object.defineProperty(obj,key,{
+        set: function (newValue){
+          value = newValue
+          // 获取到此属性的dep实例对象
+          const dep = getDep(obj,key)
+          dep.notify() // 自动执行对应key的dep
+        },
+
+        get: function(){
+          // 1.拿到obj和key
+          console.log('get函数',obj,key)
+          // 2.找到对应obj对象对应key的dep对象
+          const dep = getDep(obj,key)
+          // 3.添加依赖函数
+          dep.depend()
+          return value
+        }
+      })
+    })
+  ```
+  > 通过上面的数据结构,我们知道需要通过obj和key两个值来获取到这个属性的dep实例对象,再从这个dep实例对象中进行添加依赖函数`depend()`或执行依赖函数`notify()`的操作
+- ==获取dep的函数`getDep`==
+  ```js
+    // 通过obj的key获取dep对象
+    // 1.先通过obj在objMap中找到obj映射的map
+    // 2.再通过key在map中找到key映射的dep对象
+    const objMap = new WeakMap() // 弱引用更好,当obj被销毁时,对应的Map也会销毁
+    function getDep(target,key){
+      let map = objMap.get(target)
+      // 1.根据obj对象,找到对应的map对象
+      if(!map){ // 第一次没有,需要初始化设置
+        map = new Map()
+        objMap.set(target,map)
+      }
+      // 2.根据key,找到对应dep对象
+      let dep = map.get(key)
+      if(!dep){
+        dep = new Depend()
+        map.set(key,dep)
+      }
+      return dep
+    }
+  ```
+  > ==看着上面的数据结构图和注释,思路很清晰==
+- ==最后,如何添加依赖的函数,间接添加`dep.depend()`==
+- 这个函数是class内的,如下
+  ```js
+    class Depend{
+      constructor(){
+        this.reactiveFns = new Set() // 防止重复
+      }
+      notify(){
+        this.reactiveFns.forEach(fn => {
+          fn()
+        })
+      }
+      depend() {
+        if (reactiveFn) {
+          this.reactiveFns.add(reactiveFn)
+        }
+      }
+    }
+  ```
+  > new Set是防止添加依赖函数时重复添加依赖函数,如下
+  ```js
+    watchFn(function bar(){
+      // 会给obj的address属性添加2次bar函数
+      console.log('bar',obj.address)
+      console.log('bar',obj.address)
+    })
+  ```
+- 监听函数watchFn改动 ==通过reactiveFn去间接添加函数==
+  ```js
+    let reactiveFn = null // 全局
+    function watchFn (fn){
+      reactiveFn = fn
+      fn() // 执行foo,进入get函数
+      reactiveFn = null // 赋空值,为下一次赋新值
+    }
+  ```
+- 执行顺序如下
+  [![pEI4P3D.png](https://s21.ax1x.com/2025/04/23/pEI4P3D.png)](https://imgse.com/i/pEI4P3D)
+- get函数触发条件
+  [![pEIWhvj.png](https://s21.ax1x.com/2025/04/23/pEIWhvj.png)](https://imgse.com/i/pEIWhvj)
+- set函数触发条件
+  [![pEI4eEt.png](https://s21.ax1x.com/2025/04/23/pEI4eEt.png)](https://imgse.com/i/pEI4eEt)
+### 多个对象响应式
+- 仿照vue的reactive函数,原先的方法只能针对obj这一个对象
+- ==只需要封装一个函数即可,把要响应式的对象作为参数传进去即可,其余不变==
+  ```js
+    function reactive(obj){
+      Object.keys(obj).forEach(key => {
+        let value = obj[key]
+        Object.defineProperty(obj,key,{
+          set: function (newValue){
+            value = newValue
+            const dep = getDep(obj,key)
+            dep.notify()
+          },
+      
+          get: function(){
+            const dep = getDep(obj,key)
+            dep.depend() 
+            return value
+          }
+        })
+      })
+      return obj // 记得返回
+    }
+
+    // ===== 测试业务 ======== 新对象user =====
+    console.log('====user======')
+    const user = reactive({nickname: 'kiki', level: 100})
+
+    watchFn(function fvv(){
+      console.log('fvv',user.nickname)
+      console.log('fvv',user.level)
+    })
+
+    user.nickname = '007'
+  ```
+### vue3的proxy
+- 很简单,把defineProperty替换为new Proxy即可
+  ```js
+    // vue3-proxy
+    function reactive(obj){
+      const objProxy = new Proxy(obj,{
+        set: function(target,key,newValue,reactive){
+          // 原对象设置新值
+          // target[key] = newValue
+          Reflect.set(target,key,newValue,reactive)
+          const dep = getDep(target,key)
+          dep.notify()
+        },
+
+        get:function(target,key){
+          const dep = getDep(target,key,reactive)
+          dep.depend()
+          // return target[key]
+          return Reflect.get(target,key,reactive)
+        }
+      })
+      return objProxy
+    }
+  ```
+  > 相关知识,比如reactive和reflect在js高级讲过
 ## Vue安装插件本质(了解)
 - app.use的本质: ==可传入的参数为对象或函数==
   ```js
@@ -3457,13 +3728,6 @@
     // 原来的: useDirectives(app)
     app.use(useDirectives)
   ```
-## 响应式原理(面试)
-
-
-
-
-
-
 ## 内置组件(了解)
 ### teleport
 - 类似于react的Portals,把组件从当前组件树移动到别的组件树下
