@@ -245,7 +245,7 @@
    - 运行以下命令安装Vite：`cnpm install -g vite`。(cnpm淘宝路径下载)
 
 2. **创建新项目：**
-   - 在命令行中运行`npm init vite `。(mac的同学尽量使用npm 安装。否则可能电脑会因为权限不足报错)
+   - 在命令行中运行`npm init vite`。(mac的同学尽量使用npm 安装。否则可能电脑会因为权限不足报错)
    - 官网上为 `npm create vite@latest` 
 
 3. **进入项目目录：**

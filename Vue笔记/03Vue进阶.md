@@ -82,7 +82,7 @@
     > 1.计算属性是自动的,而函数方法需要看你绑定的触发条件,非自动的
     > 2.计算属性只能进行简单的计算返回出去,而函数方法可以在内部进行更加复杂的加工,最后赋值给子组件新创建的状态即可
 
-### 属性验证与默认属性
+### props
 - ==子组件接受父组件时可以对接受的参数规范其类型,还可以在不输入的情况下给默认值==,如下
   ```js
       props:{
@@ -115,28 +115,25 @@
     > 注意: default不要和required写一起,默认值就是偷懒不传值用默认值的,和必填属性功能冲突了!
 
 ### 属性透传
-- 父组件使用子组件时,直接在自定义标签上加形如class,style,id等,会透传到Navbar组件的根节点上(div),==注意是根节点,就是最外层的那个标签==
-- ==如果div有自己的class等,会合并==
-- ==vue可以区分这种标准的属性和我们自定义的属性==,所以class会当作正常标签透传,而kerwinClass就会被当做新组件
-- ==**事件**同理也能透传给子组件的根节点==
+- 父组件使用子组件时,直接在自定义标签上加形如class,style,id等,会透传到Navbar组件的根节点上,注意是根节点,就是最外层的那个标签
+- ==如果div有自己的class等,会合并; **事件绑定**同理也能透传给子组件的根节点==
 
->特殊情况: 比较少,就比如Navbar又有个子组件叫NavbarChild,==但是在Navbar.vue文件中压根没有根节点==(vue3支持,vue2不支持),只有个NavbarChild组件,==那么这个属性会透传给孙子NavbarChild的根组件上== 
+  > 特殊情况: 比较少,就比如Navbar又有个子组件叫NavbarChild,==但是在Navbar.vue文件中压根没有根节点==(vue3支持,vue2不支持),只有个NavbarChild组件,==那么这个属性会透传给孙子NavbarChild的根组件上== 
 
-- ==组件可以禁止透传(禁止向根节点),也可以通过属性指定透传目标==,如下(==子组件==)
-  ```
-    tempalte:
+- ==组件可以禁止向根节点透传属性,也可以通过属性指定透传元素==
+  ```html
+    <!-- 子组件 -->
+    <!-- tempalte: -->
     <div class="aaa">
         <!-- 下面属性意思是: 向这个标签透传(不影响原生的向根节点透传,如果没有禁止透传,根节点和这个节点都有相同样式) -->
         <button v-bind="$attrs">test</button>
     </div>
-
-
-
-    script:
-        export default {
-            // 禁止透传,来自父组件的透传被阻止了
-            inheritAttrs: false,
-        }
+  ```
+  ```js
+      export default {
+        // 禁止透传子组件的根组件
+        inheritAttrs: false,
+      }
   ```
 ### 子传父
 - 子传父也需要子和父配合,一个明显区别是: ==父传子是自动的,子传父是被动的,需要触发==
@@ -191,80 +188,74 @@
   - 子组件$emit()第一参数写好要用哪个钥匙,每个钥匙对应着一个父组件自定义事件,后面的参数用来传递子组件的参数
   - ==流程就是: 子组件事件触发-->$emit()指定方向和传参-->相关的父组件接受子组件的信息==
 
-### 父组件$refs
-- **ref - \$refs**: ==通过ref对子组件名字,然后在父组件的js区直接使用"this.\$refs + 名字"调用对应的子组件==
-> 注意: 这个方法作为辅助与父传子打配合,但是不能作为主流,因为它的耦合度太高了,后期不好维护
-- ==下面是一个简单注册与重置案例:==
-- 父组件的ref命名:
-  ```
-    <!-- 给组件+ref --> 
-    <!-- 父传子label和type的信息 -->
-    <Field label="用户名" type="text" ref="username"></Field>
-    <Field label="密码" type="password" ref="password"></Field>
-    <Field label="年龄" type="number" ref="age"></Field>
-
-    <!-- 使用ref获取子组件的数据和修改子组件的值,更简单方便 -->
-    <div>
-        <button @click="handleRegister">注册</button>
-        <button @click="handleReset">重置</button>
-    </div>
-  ```
-  > ==给每个组件设置了ref,并分配了名字,用于区分,在函数功能方法区,我们会使用到这些名字==
-- 子组件Field代码:
-  ```
+### $refs获取组件或DOM
+- $refs 是一个对象，它允许你访问在模板里通过==ref 特性注册的子组件或 DOM 元素==
+- 1.获取注册的子组件
+- ==**通过`this.$refs.XX`获取子组件实例**,进而操作子组件里面的值==
+  ```html
+    <!-- ParentComponent.vue -->
     <template>
-        <div>
-            <label>{{label}}</label>:
-            <!-- 动态绑定type类型,后面的type是父传子的信息 -->
-            <input :type="type" v-model="myvalue">
-        </div>
+      <div>
+        <!-- 给子组件添加 ref 特性 -->
+        <ChildComponent ref="child" />
+        <button @click="callChildMethod">调用子组件方法</button>
+      </div>
     </template>
 
     <script>
-        export default{
-            data(){
-                return{
-                    myvalue: ""
-                }
-            },
-            // 接受父的label和type信息并限制类型
-            props:{
-                label:{
-                    type:String,
-                    default:""
-                },
-                type:{
-                    type:String,
-                    default:"text"
-                }
-            }
-        }
-    </script>
-  ```
-  > ==主要代码是接受父传子的信息,并配给input框,**外加双向绑定v-model(后期注册与重置功能的关键**)==
-- 父组件使用$refs控制子组件
-  ```   
-  js区:
-    methods:{
-        handleRegister(){
-            // 拿到子组件的状态myvalue,同理password和age
-            // 然后提交给后端
-            // myvalue是子组件的状态,与input进行v-model双向绑定
-            console.log(this.$refs.username.myvalue)
-            console.log(this.$refs.password.myvalue)
-            console.log(this.$refs.age.myvalue)
-        },
-        handleReset(){
-            // 赋空值,重置
-            this.$refs.username.myvalue = ""
-            this.$refs.password.myvalue = ""
-            this.$refs.age.myvalue = ""
-        }
-    }
+      import ChildComponent from './ChildComponent.vue';
 
+      export default {
+        components: {
+          ChildComponent
+        },
+        methods: {
+          callChildMethod() {
+            // 通过 $refs 访问子组件实例并调用其方法
+            this.$refs.child.showMessage();
+          }
+        }
+      }
+    </script>
+
+    <!-- ChildComponent.vue -->
+    <template>
+      <div>子组件</div>
+    </template>
+
+    <script>
+      export default {
+        methods: {
+          showMessage() {
+            console.log('这是子组件的方法');
+          }
+        }
+      }
+    </script> 
   ```
-  > ==**通过`this.$refs` + 名字(ref命名的那个)获取子组件的myvalue值**,实时获取输入框的值,在用户点击注册时,即直接发给后端;点重置则给赋空值.**父组件可以直接对子组件的myvalue状态进行控制**==
-  > ==**`this.$refs`获取的是子组件的proxy对象**==
+  > ==注意: $ref是获取dom对象,直接绑定的事件处理函数上不会有问题,当触发事件处理函数时,dom节点已经挂载完成;
+  > 但是如果要直接用,一定要写在mounted生命周期函数内,确保dom树挂载后再获取,否则就是undefined;==
+- 2.获取DOM对象
+  ```html
+    <template>
+      <div>
+        <!-- 给 input 元素添加 ref 特性 -->
+        <input ref="myInput" type="text">
+        <button @click="focusInput">聚焦输入框</button>
+      </div>
+    </template>
+
+    <script>
+      export default {
+        methods: {
+          focusInput() {
+            // 通过 $refs 访问 input 元素并调用 focus 方法
+            this.$refs.myInput.focus();
+          }
+        }
+      }
+    </script>    
+  ```
 
 ### 子组件\$parent \$root
 - 重点区分: \$parent 与 \$root  
@@ -389,8 +380,6 @@
       ```
   - 子组件接受后,可以对整个app所有状态修改了 `inject : ["app"]`
   > ==这个方式依旧有风险,等学习到**组合式**就有更好的解决方案了==
-### 组件通信简单案例
-
 ### 全局事件总线库
 - ==常规业务中一般使用第三方库完成业务,**原始的provide无法提供兄弟间的关系**==
 - vue2提供`$on,$off,$once`实现事件总线,vue3则需要使用==第三方库mitt或tiny-emmiter==
@@ -666,7 +655,7 @@
 ### 插槽的基本应用
 - 插槽的作用: ==为了更好实现组件的复用性,看完插槽用法再详细介绍插槽的必要性和优势==
 - ==**具体插槽是什么?**== 
-  - 比如我们引入了个组件Child,一般我们只是使用这个标签放置在template区域,但是内部是不写东西的,如果里面写东西了,我们可以认定写的东西是"磁带卡",如果没有"卡槽",也无法显示,那么插槽需要子组件打配合,**子组件提供"卡槽",父组件提供"磁带卡",两个结合起来就是插槽的功能了**
+  - 比如我们引入了个组件Child,一般我们只是使用这个标签放置在template区域,但是内部是不写东西的,如果里面写东西了,我们可以认定写的东西是"磁带卡",如果没有"卡槽",也无法显示,那么插槽需要子组件打配合,==**子组件提供"卡槽",父组件提供"磁带卡",两个结合起来就是插槽的功能了**==
 - ==具体代码: (App父)==
   - `<Child> <div>我在app组件的html代码</div> </Child>`
 - ==Child(子):==
@@ -695,7 +684,7 @@
         child
     <slot name="two"></slot>
   ```
-- 代码(==父,按名字找卡槽位置,**有简写方法**==):
+- 代码(==父,按名字找卡槽位置,**简写方法为#**==):
   ```html
     // template自己不会显示
     <template v-slot:one>
@@ -707,235 +696,178 @@
     </template>
   ```
   > 1.父中使用template,是因为它自己不会显示
-  > 2.如果子的插槽没有命名(万能卡槽),那么父中没有slot指向的代码都会进去
+  > 2.如果子的插槽没有命名name(万能卡槽),那么父中没有v-slot指向的代码都会进去
   > 3.子与父的slot需要配对,如果出现"磁带卡"与"卡槽"不匹配,直接不显示
   > 4.==**在vant4网站中有许多别人写好的组件,而在这些组件中插槽几乎是必须品,可以看看网站提供的组件说明,利用插槽,用用别人写的组件**==
-### 作用域插槽
-- ==正常状态下的插槽是有作用域限制的,你写在组件里的代码("磁带卡"),只能使用此文件的状态信息等==,**而不能使用组件内部的状态,这和子父互传单向传输一样,为了防止组件间乱改信息造成混乱**
-- ==这个功能还是很好的,继续拿出老案例,在父子互传时就有的老将军案例了==
-- 具体如图:
-  [![pA0SqGF.png](https://s21.ax1x.com/2024/10/26/pA0SqGF.png)](https://imgse.com/i/pA0SqGF)
-- ==解释: App是总组件,内部有2个儿子Navbar和Layout,而Layout的有2个儿子,content和sidebar,我们要实现的功能是,点击Navbar的按钮实现sidebar的显示与隐藏==
-- 代码: App (==截取重点部分==)
-  ```
+### 动态插槽
+- ==写法为: `:#[变量名]`==
+- 1.父组件--定义动态插槽
+  ```html
     <template>
-        <div class="root">
-            <!-- 插槽 -->
-            <Navbar>
-                <!-- 可以访问到父组件,直接改变isShow的值即可 -->
-                <button @click="isShow = !isShow">展开/折叠侧边栏</button>
-            </Navbar>
-            <!-- 父传子,动态传值 -->
-            <Layout class="layout" :myshow="isShow"></Layout>
-        </div>
-    </template>
-  ```
-    > ==isShow是App的一个状态==,在Navbar插槽中通过点击去切换状态,然后子传父给layout组件
-- 代码(Navbar)
-    ```
-    <template>
-        <div>
-            <!-- 插槽接待处 -->
-            <slot></slot>
-            <div>vue3的单文件navbar</div>
-        </div>
-    </template>
-    ```
-    > ==父组件的button代码通过插槽进入Navbar,Navbar组件得以显示这个button,通过点击触发事件,改变isShow的值,**注意,这时isShow由于作用域问题,只能改变App内的isShow的值,正好省的再子传父了,这样父的isShow可以实时收到Navbar点击按钮的影响进行改变,之后再传入layout,再由layout去显示隐藏自己的孩子,layout代码略**==
-- ==作用域的硬性规则也可以打破,使得父组件的"磁带卡"即可以访问自己父组件的内容也可以访问到子组件的内容==
-- 语法:(==App引入子组件Nowplaying,需要子组件的datalist数据==)
-- 子组件:(==暴露父组件想要使用的数据==)
-  **==语法结构==** : `:自定义属性名字="想要暴露的状态名"`
-  ```
-        <slot :mylist="datalist" name="movie">
-            <ul>
-                <li v-for="item in datalist" :key = "item.id">
-                    {{item.nm}}
-                </li>
-            </ul>
-        </slot>
-  ```
-  > ==子组件的卡槽,自定义一个属性名,未来取用这个属性值时按这个名字找,暴露子组件的状态datalist,动态绑定为了暴露变量而非字符串==
-  
-- 父组件:(==获取子组件暴露数据==)
-- **==语法结构(标准)==** : `v-slot:组件卡槽name名字="随意起名(本次例子起名为myprops)"`
-  ```
-    <Nowplaying v-slot:movie="myprops">
-        <li v-for="data in myprops.mylist" :key="data.id">
-            {{data}}
-        </li>
-    </Nowplaying>
-  ```
-
-  > 1.接受子组件所有的暴露属性,存入myprops这个对象,==通过myprops.XXX按需取用==
-  > 2.如果子组件卡槽没写名字name,直接v-slot="XXX"
-  > 3.==v-slot:movie 可以简写为 #movie==
-  > 4.==可以通过结构赋值获取对象中自己想要的值,#movie={mylist}即可,之后myprop.mylist就全变为mylist即可==
-### 插槽作用域之猫眼
-- 需求: ==用户想要再猫眼的电影列表上添加一个模糊搜素功能,实现被搜索的电影词条实现标红放大效果,但是猫眼的数据在组件的datalist中,按道理用户使用组件但是无法访问到组件内部的数据==,**这时开发者可以提前将组件中的猫眼数据暴露出去,如果有用户想用,直接获取即可**
-- 猫眼组件代码:
-    ```
-    <template>
-        <div>
-            <!-- 暴露datalist数据,如果父组件没有使用插槽,那么就默认继续显示下面的源代码即可 -->
-            <slot :mylist="datalist" name="movie">
-                <ul>
-                    <li v-for="item in datalist" :key = "item.id">
-                        {{item.nm}}
-                    </li>
-                </ul>
-            </slot>
-        </div>
+      <!-- 父组件 -->
+      <div>
+        <ChildComponent>
+          <!-- 使用动态插槽 -->
+          <template :#[dynamicSlotName]>
+            <p>这是动态插槽内容</p>
+          </template>
+        </ChildComponent>
+      </div>
     </template>
 
     <script>
-        // 使用axios
-        import axios from 'axios'
+    import ChildComponent from './ChildComponent.vue';
 
-        export default{
-            data(){
-                return {
-                    datalist:[]
-                }
-            },
-            mounted(){
-                // console.log("123");
-                // 在自己服务器请求可以省略协议和域名 还是猫眼的数据
-                // fetch("054test.json").then(res=>res.json()).then(res=>{console.log(res)})
-                // console.log(axios)
-                axios.get("054test.json").then(res=>{
-                    // console.log(res.data.data.hot)
-                    // 箭头函数确保了this指向同步于外面
-                    this.datalist = res.data.data.hot
-                })
-                
-            }
-        }
+    export default {
+      components: {
+        ChildComponent
+      },
+      data() {
+        return {
+          dynamicSlotName: 'content'
+        };
+      }
+    };
     </script>
-    ```
-    > ==信息提取: 引入axios,和之前案例一样,提前把猫眼后端的数据存入本地json文件中,通过axios模仿网络请求获取,然后把获取的响应数据赋值给状态datalist,最后把datalist暴露出去,名为mylist==
-- 用户的代码(==获取猫眼暴露的datalist数据==)
-   ```
+  ```
+  > 变量为dynamicSlotName,可以动态改变插槽位置
+- ==子组件--设置插槽==
+  ```html
+    <!-- ChildComponent.vue -->
     <template>
-        <div>
-            <!-- 模糊搜索添加样式 -->
-            <input type="text" v-model="mytext">
-            <Nowplaying v-slot:movie="myprops">
-                <ul>
-                    <!-- 使用暴露的属性mylist,从对象中提取,其余的相同 -->
-                    <!-- 突破了作用域显示,能用自己的,也能用儿子的 -->
-                    <li v-for="data in myprops.mylist" :key="data.id">
-                        <!-- 模糊搜索添加样式 -->
-                        <div v-if="data.nm.includes(mytext) && mytext != ''" style="color:red; font-size: 20px;">
-                            <img :src="data.img" style="width:100px">
-                            {{ data.nm }}
-                        </div>
-                        <!-- 没有匹配就没样式 -->
-                        <div v-else>
-                            <img :src="data.img" style="width:100px">
-                            {{ data.nm }}
-                        </div>
-                    </li>
-                </ul>
-            </Nowplaying>
-        </div>
+      <div>
+        <!-- 定义具名插槽 -->
+        <header>
+          <slot name="header"></slot>
+        </header>
+        <main>
+          <slot name="content"></slot>
+        </main>
+        <footer>
+          <slot name="footer"></slot>
+        </footer>
+      </div>
     </template>
-   ```
-   > 提示: ==重点看如何引入组件的暴露数据datalist,以及使用它重新构建了猫眼的电影列表==,**至于模糊搜索includes和样式添加,不是本案例的重点**
-## 生命周期
+  ```
+### 作用域插槽
+- 作用域插槽是 Vue 中一个强大的特性，它允许父组件在使用子组件时，访问子组件的数据。==通过作用域插槽，子组件可以将数据传递给父组件，父组件再根据这些数据来渲染内容。==
+- 1.作用域插槽在定义插槽的时候,设置参数用于接受子组件的信息
+- 语法: `#Name='变量'` (Name为插槽名,变量用于接受子组件信息)
+- 下面是一个包含作用域插槽的示例，子组件包含一个列表数据，父组件使用作用域插槽来渲染这个列表。
+  ```html
+    <template>
+      <!-- 父组件 -->
+      <div>
+        <ChildComponent>
+          <!-- 使用作用域插槽，接收子组件传递的数据 -->
+          <template #default="slotProps">
+            <ul>
+              <!-- 遍历子组件传递的 items 数组 -->
+              <li v-for="item in slotProps.items" :key="item.id">{{ item.name }}</li>
+            </ul>
+          </template>
+        </ChildComponent>
+      </div>
+    </template>
+
+    <script>
+    import ChildComponent from './ChildComponent.vue';
+
+    export default {
+      components: {
+        ChildComponent
+      }
+    };
+    </script>
+
+    <!-- ChildComponent.vue -->
+    <template>
+      <div>
+        <!-- 定义作用域插槽，通过 v-bind 将 items 数组传递给父组件 -->
+        <slot :items="items"></slot>
+      </div>
+    </template>
+
+    <script>
+    export default {
+      data() {
+        return {
+          items: [
+            { id: 1, name: 'Apple' },
+            { id: 2, name: 'Banana' },
+            { id: 3, name: 'Cherry' }
+          ]
+        };
+      }
+    };
+    </script>
+  ```
+  > `#default`是默认插槽,没有命名的插槽,接受子组件中没有name命名的slot传参
+- ==2.作用域插槽也可以和具名插槽结合使用。以下是一个具名作用域插槽的示例：==
+  ```html
+    <template>
+      <!-- 父组件 -->
+      <div>
+        <ChildComponent>
+          <!-- 具名作用域插槽，接收子组件传递的数据 -->
+          <template #list="slotProps">
+            <ul>
+              <li v-for="item in slotProps.items" :key="item.id">{{ item.name }}</li>
+            </ul>
+          </template>
+        </ChildComponent>
+      </div>
+    </template>
+
+    <script>
+    import ChildComponent from './ChildComponent.vue';
+
+    export default {
+      components: {
+        ChildComponent
+      }
+    };
+    </script>
+
+    <!-- ChildComponent.vue -->
+    <template>
+      <div>
+        <!-- 定义具名作用域插槽，通过 v-bind 将 items 数组传递给父组件 -->
+        <slot name="list" :items="items"></slot>
+      </div>
+    </template>
+
+    <script>
+    export default {
+      data() {
+        return {
+          items: [
+            { id: 1, name: 'Apple' },
+            { id: 2, name: 'Banana' },
+            { id: 3, name: 'Cherry' }
+          ]
+        };
+      }
+    };
+    </script>
+  ```
+  > 命名#list,所以子组件要给这个插槽传参需要name=list
+
+## 生命周期(选项式)
 ### 创建阶段
 - ==每个组件的创建都有一套生命周期,开发者可以使用生命周期钩子函数,在特定阶段运行自己的代码==
-- ==生命周期钩子执行顺序(**选项式**)==: beforeCreate -> init Options API(开发者自己创建data methods等) -> created -> beforeMount -> 模板编译过程(tempalte编译)  -> mounted
 - ==各个生命周期阶段的详细介绍:==
   - beforeCreate: ==几乎不用==,什么都没有,定义的东西啥都还没创建呢,啥也访问不到
-  - create: 可以访问到自己定义的所有东西,这也是在网页显示之前最后一次修改它们的机会了,==可以在这里修改数据和初始化数据(记得+this)==
-  - beforeMount: ==几乎不用==,tem编译之前,还没挂载dom节点,访问不到dom节点
-  - ==**mounted(最常用**==): 挂载dom节点完成,可以访问到dom节点,只有这里可以访问dom,==vue使用dom一般是调用第三方库去实现一些功能==
-  - ==常用于 订阅,ajax fetch axios等网络请求,间隔定时器setInterval==
-    > 注意: ajax放在非mounted发送请求,你发现也会请求到数据,原因是发ajax是异步的,等你网络请求回来,钩子函数早执行完了(到mounted阶段),所以就可以正常显示,但是我们习惯把它放在mounted函数中去使用
-- ==**总结**==:
-  - beforeCreate: 什么都访问不到,这时候连最基本的状态都没有
-  - create: 已经可以访问到data mehods computed等数据了
-  - beforeMount: 访问不到dom节点
-  - mounted: 可以访问到dom节点
-- 来一个具体实例(==使用echarts: 基于js的图形绘制第三方库==)
-- 在这个实例中,我们体会下vue使用dom来引用第三方库的操作,其中echarts是个不错的js绘图工具,按照官方文档学习基本用法
-- 代码:
-  ```
-    <template>
-        <div>
-            app---{{title}}
-            <!-- <div id="main"></div> -->
-            <div id="main" style="width: 600px;height:400px;"></div>
-        </div>
-    </template>
-
-    <script>
-    // echarts: 基于js的图形绘制第三方库
-    // 导入echarts库,查看官方文档写法, 意思是把所有的方法(*)存入(as)这个对象中(echarts)
-    // 在之后使用方法是,就echarts.XXX即可
-    import * as echarts from 'echarts';
-    export default{
-        data(){
-            return {
-                title : "12345",
-                obj : {}
-            }
-        },
-        beforeCreate(){
-            console.log("beforeCreate: ",this.title)
-        },
-        created(){
-            console.log("created: ",this.title)
-            // 显示前最后一次修改机会
-            this.title = "000000"
-            // 初始化工作: 记得加this
-            this.obj.a = "aaa"
-            this.option = {
-                title: {
-                text: 'ECharts 入门示例'
-                },
-                tooltip: {},
-                legend: {
-                data: ['销量']
-                },
-                xAxis: {
-                data: ['衬衫', '羊毛衫', '雪纺衫', '裤子', '高跟鞋', '袜子']
-                },
-                yAxis: {},
-                series: [
-                {
-                    name: '销量',
-                    type: 'bar',
-                    data: [5, 20, 36, 10, 10, 20]
-                }
-                ]
-            };
-        },
-        beforeMount(){
-            console.log("beforeMount: ",document.getElementById('main'))
-        },
-        mounted(){
-            // 访问dom的用处: (echarts模块已经npm下载好了,记得引入)
-            // 来自官方文档的例子
-            var myChart = echarts.init(document.getElementById('main'));
-            // option在create里赋值,不让代码在这里冗余,create做做初始化工作挺好的
-            myChart.setOption(this.option); // 记得加this才能访问到
-        }
-    }
-    </script>
-  ```
-  > 总结: 
-  > 1.可以看看官方文档的引入操作,注释中解释了这种引入方式,不同第三方工具的引入操作不一定相同,当发现引入失败时,及时查看文档是如何引入的
-  > 2.我们把option的配置写在了create中,分散了代码,防止都堆在mounted中,==注意这时无论是定义还是使用都需要加this,create使用this.option初始化了新的状态,而counted也要通过this去获取==
-  > 3.dom操作主要是第三方工具需要dom节点区承载它们的方法,来实现具体功能,比如mounted代码中,echarts的init方法需要一个参数,这个参数就是图标显示标签的dom节点
-### 更新阶段
+  - create: ==实例已经创建完成,但是还没有挂载dom树,所以无法操作dom==，数据观测、property 和 method 的计算、watch/event 事件回调都已完成，==可在这个阶段进行**数据的初始化、异步数据**的请求等操作。==
+  - beforeMount: ==几乎不用==,tem编译之前,这个阶段过后,dom会被挂载
+  - ==**mounted(最常用**==): 挂载dom节点完成,可以访问到dom节点,只有这里可以访问获取dom,操作dom对象
+### 更新阶段与nextTick
 - 在mounted阶段,如果我们要更新数据,==就有beforeUpdate和updated两个阶段,前者是还没更新且几乎不用,后者是更新完成常常使用==
 - 只要涉及到数据的更新就会有beforeUpdate和updated,==**更新阶段最主要的作用还是操作dom**==
 >
 - 案例: ==承接echarts的案例,echarts有一个方法resieze(),一旦图标的大小改变调用它就会重构图标大小==
 - 正常思路写,如下
-  ```
+  ```html
     <template>
         <div>
             app---{{ title }}
@@ -944,23 +876,20 @@
             <div id="main" :style="{ width: mywidth, height: '400px' }"></div>
         </div>
     </template>
-
-    js:
+  ```
+  ```js
     handleClick() {
         this.mywidth = '800px'
-        ------------------------
         console.log(document.getElementById('main').style.width);
         // 发现还是600px,因为生命周期中,更改dom是异步的,是需要时间的,操之过急改完后没有等待生命周期的更新,就会发现还没改呢就调用resize()
         // 这时updated作用就体现出来了
-        ------------------------
         this.myChart.resize()  
     }
   ```
   > 主体: myChart的构建没变,核心逻辑就是再设置完宽度后,立即执行myChart.resize(),发现图标没变
   > 原因: 因为任何数据的改变都会涉及更新阶段(updated),这是异步执行的,但是代码中在更改完成后,直接resize,操之过急了,还没等updated把dom的width给改了,你就resize,数据还是原样的,正如代码中,你可以在中间打印一下width看看变没变
 - 一轮修改(==把图标的修改操作放入updated中==)
-  ```
-   js:
+  ```js
    updated(){
         // 这里的don已经更新完成了,width已经800px了
         console.log("updated",document.getElementById('main').style.width)
@@ -970,7 +899,7 @@
   ```
   > 还有个小瑕疵,就是所有的数据更新都会自动执行一次update,比如此vue还有一些状态,你改变了它的值,也会执行updated,那么myChart.resize()会无意义执行一次,这样不好,所以还有更好的方案
 - 最终修改:(==使用了新语法nextTick==)
-  ```
+  ```js
      handleClick() {
         this.mywidth = '800px'
         // 下面的方法是一个一次性调用的函数它只关联当前状态mywidth,只有当它改变时才会执行,并且立即更新dom
@@ -987,48 +916,11 @@
 - 组件销毁: ==beforeUnmount unmounted,老样子,前者是销毁前,几乎没用,后者是销毁后,组件的一切都没了== 
 - ==什么时候会销毁?==
   - 比如v-if挂组件上,当结果为false时,就会被销毁
+  - 页面没有keep-alive,跳转页面后,之前的页面也会被销毁
 - ==销毁组件的用处==: 在销毁阶段我们也有事情要做,==比如我们在组件内部绑的定时器,这是绑定在windows上的,组件的销毁并不能带走它==,所以需要他特事特办,对定时器解绑,==**即销毁阶段唯一要做的事情就是,销毁那些不会跟随组件一起被销毁的属性,方法等(定时器,mitt监听的方法)**==
-- 案例: (==APP父,Child子,子内部挂载一个定时器==)
-- App父(==销毁子组件Child==)
-  ```
-    <template>
-        <div>
-            app
-        </div>
-        <!-- 销毁组件操作,组件内部的一切都会被销毁 -->
-        <!-- <button @click="isCreate = !isCreate">delete Child</button> -->
-        <Child v-if="isCreate"></Child>
-    </template>
-
-    js:
-    mounted() {
-        console.log("App-mounted")
-    }
-  ```
-- 子Child(==销毁自己的定时器==)
-  ```
-  js:
-    mounted(){
-        console.log("Child-mounted")
-        // 挂载在windows上的监听窗口大小变化的监听器,即使组件没了,也依然存在,需要特事特办去销毁它
-        window.onresize = ()=>{
-            console.log("resize")
-        }
-    },  
-    unmounted(){
-        console.log("unmounted")
-        // 销毁windows挂载的方法
-        window.onresize = null
-    }
-  ```
-
-  > ==重点1==: 父组件通过v-if销毁了子组件,子组件在mounted中定义了定时器,在unmounted中销毁了定时器,如果不销毁,那么定时器不会消失
-  > ==重点2==: 多个组件使用同一个window挂载方法,只要其中一个销毁,其他的组件也会跟着销毁掉,例如引入Child和Child2两个组件都有window的onresize,如果销毁Child时把onresize也销毁了,那么Child2中的onresize也会失效
-  > ==思考==: 看代码,子和父的mounted都有一段打印,谁会先打印
-  > ==答==:孩子的mounted先于父的mounted执行,因为父在执行到mounted阶段时,所有的dom都已经完成配置了,可以访问了,这时Child组件作为在template里面的一份子,早就执行完了dom配置
 
 ## VCA组合式写法
-### 初识VCA
+### reactive()
 - ==组合式写法代码如下:==
   ```html
     <template>
@@ -1081,59 +973,7 @@
   - 4.==内函数方法使用状态写法改变,**不再是this.XX而是obj.XX,因为你把状态封装为proxy对象赋值给obj了,所以这是很正常的思路,同理的template想要使用状态也要这么写**,不再是选项式直接写的写法了==
   - 5.==在组合式中常用const(ES6写法)==,替换掉在选项式的var(ES5)
     > const ES6写法: ==const是不可变写法,obj不可被赋值==,**由于obj拿到的只是proxy对象的一个指针,所以内部的属性随便改**==(不影响指针指向),不违反const要求==
-  
-
-### reactive()案例
-- 代码:
-  ```html
-    <template>
-        <div>
-            <!-- 记得所有的内部状态(mytext,datalist)需要state.XXX -->
-            <input type="text" v-model="state.mytext">{{ state.mytext }}
-            <button @click="handleAdd">add</button>
-            <ul>
-                <li v-for="(data, index) in state.datalist" :key="data">
-                    {{ data }}
-                    <button @click="handleDel(index)">Del</button>
-                </li>
-            </ul>
-        </div>
-    </template>
-    <!-- 写老案例06增删li列表的案例 -->
-    <script>
-        import { reactive } from 'vue';
-        export default {
-            setup() {
-                // reactive()作为vue的内置方法,可以写多个
-                const state = reactive({
-                    datalist: ["111", "222", "333"],
-                    mytext: ""
-                })
-
-                // 都记得要state.XXX
-                const handleAdd = () => {
-                    state.datalist.push(state.mytext)
-                    state.mytext = ""
-                }
-
-                const handleDel = (index) => {
-                    state.datalist.splice(index, 1)
-                }
-
-                // 记得方法状态都要return出去
-                return {
-                    state,
-                    handleAdd,
-                    handleDel
-                }
-
-                // 总结: template和js内部使用状态都需要"state.XXX"
-            }
-        }
-    </script>
-  ```
-    > 总结: ==写老案例06增删li列表的案例,思路十分的简单,注意几点,习惯组合式的写法,记得返回值,记得reactive定义状态的方式,**记得想要调用状态时需要state.XX**==
-### ref()的应用
+### ref()
 - reactive只能封装复杂数据类型(对象,数组),对简单数据类型的单独封装不支持,由此引出ref
 - ref: 创建一个包装对象(proxy),同样需要引入,==复杂数据和简单数据都可以包装,不过他会自动封装一层value的对象==
    `const myname = ref("kerwin") // 会包装为{ value : "kerwin"}`
@@ -1178,17 +1018,21 @@
     - 1.由于vue自动封装的value,==在js内部使用状态需要加".value",**但是tempalte内部使用状态,vue会自动帮你加上,所以和选项式一样了,直接写即可**==
       > 注意: 在js内部直接打印状态,是一个对象RefImpl,这就是ref封装好返回给你的对象,查看属性value的值就是我们想要的状态值
     - 2.ref把reactive的**对象封装转化为2个ref单个封装(记得同步返回return的内容)**,==对mytext封装空字符串(简单数据类型),对datalist封装数组(复杂数据类型)==
-### ref的老用法
-- ==ref早在我们学习父与子的时候作为父强权ref-$ref中用过,**这个能力并没有丢失,只是组合式和选项式的使用方式变化了**==
-- 为何组合式和选项式使用ref方法不同?
-  - ==因为在组合式中的this已经没有指向了,你无法通过this获取dom节点==
-- 代码:(新用法)
+### ref()与reactive()的区别
+- ==封装能力==
+  - reactive: 复杂数据类型
+  - ref: 复杂简单数据类型都可以
+- ==状态在js和template的使用方法==
+  - reactive: template和js内部使用状态都需要"state.XX"
+  - ref: template写法和选项式一样,直接写即可; 但是在js内部使用需要+.value
+### ref获取组件或元素的实例
+- ==选项式的$ref和组合式有区别,组合式没有this指向==
+- 代码:
   ```html
     <template>
         <div>
-            <!-- 使用下ref传统用法 -->
             myname : {{ myname }}
-            <!-- ref="myinput"相当于把组合式创建的myinput状态放进去了,之后myinput会自动获取这个标签的dom节点 -->
+            <!-- ref="myinput"相当于把组合式创建的myinput元素放进去了,之后dom挂载后,myinput会自动获取这个标签的dom节点 -->
             <input type="text" ref="myinput">
             <button @click="handleClick">click</button>
         </div>
@@ -1198,17 +1042,13 @@
         import { ref } from 'vue';
         export default {
             setup() {
-
                 const myname = ref("kerwin")
-                // 这样写,开始不绑定东西,用于未来获取节点
+                // 创建一个ref对象,后期会获取到myinput的dom对象
                 const myinput = ref(null)
 
                 const handleClick = () => {
                     myname.value = "xiaoming"
-                    // setup中this已经失效所以原来选项式的用法不可用
-                    // console.log("this:",this)
-
-                    // 遵循.value规则,获得dom节点
+                    // ref获取dom元素是ref类型数据
                     console.log(myinput.value)
                     // 第一个value是ref本身东西数据获取,第二个value是获取input节点的value值
                     console.log(myinput.value.value)
@@ -1225,17 +1065,53 @@
     </script>
   ```
   - 定义好一个**ref + null**的状态myinput : `const myinput = ref(null)`,==开始不绑定东西,**用于未来获取dom节点或组件**==
-  - 在标签上挂ref: `<input type="text" ref="myinput">`,==ref="myinput"相当于把组合式创建的myinput状态放进去了,这个myinput是一个状态不是字符串,之后myinput会自动把这个标签封装进去==
+  - 在标签上挂ref: `<input type="text" ref="myinput">`,==ref="myinput"相当于把组合式创建的myinput状态放进去了,这个myinput是一个状态不是字符串,之后ref会自动把这个标签封装进去==
   - 打印ref获取的dom节点(不再使用this):`console.log(myinput.value)`, ==**遵循.value规则**,直接获得dom节点,然后随意操作即可==
-  > ==根据生命周期来说,ref定义获取节点后并不能马上得到节点,可以在点击函数中测试(等待dom挂载完成),也可以在onMounted中使用==
+  > ==根据生命周期来说,ref定义获取节点后并不能马上得到节点,可以在事件处理函数中使用获取的ref节点,也可以在onMounted等待dom挂载完后中使用==
+- 组件的获取和$ref一摸一样
+  ```html
+    <!-- ParentComponent.vue -->
+    <template>
+      <div>
+        <!-- 使用 ref 指令绑定到 childRef -->
+        <ChildComponent ref="childRef" />
+        <button @click="callChildMethod">调用子组件方法</button>
+      </div>
+    </template>
 
-### ref()与reactive()的区别
-- ==封装能力==
-  - reactive: 复杂数据类型
-  - ref: 复杂简单数据类型都可以
-- ==状态在js和template的使用方法==
-  - reactive: template和js内部使用状态都需要"state.XX"
-  - ref: template写法和选项式一样,直接写即可; 但是在js内部使用需要+.value
+    <script setup>
+    import { ref } from 'vue';
+    import ChildComponent from './ChildComponent.vue';
+
+    // 创建一个 ref 对象
+    const childRef = ref(null);
+
+    const callChildMethod = () => {
+      if (childRef.value) {
+        // 调用子组件的方法
+        childRef.value.showMessage();
+      }
+    };
+    </script>
+
+    <!-- ChildComponent.vue -->
+    <template>
+      <div>子组件</div>
+    </template>
+
+    <script setup>
+    const showMessage = () => {
+      console.log('这是子组件的方法');
+    };
+
+    // 暴露方法供父组件调用
+    defineExpose({
+      showMessage
+    });
+    </script>    
+  ```
+
+
 
 ### toRef和toRefs
 - ==toRef()==: 把state中的某一个状态单独转化为ref形式
@@ -1928,42 +1804,350 @@
     }
     ```
     > 也转化函数,但是销毁的思路差不多,使用clearInterval函数清除
-## setup语法糖(独成一体)
-- 在单文件组件SFC和组合式api同时使用时,推荐使用script-setup
-- ==总结几个重点: 1.定义变量更简单 2.不用return所有的变量 3.引入组件不需要components挂载 4.props和emit有单独的函数==
-- 不再写setup函数了,语法糖即`<script setup> ... </script>`
-- 1.==所有暴漏在顶层的代码都可以在tem中直接使用,顶层就是在script-setup语法糖内的全局环境==
-- 1.1==响应式变量的定义和普通常量的定义==,不需要return,外部tem直接用
+## Vue写法总结
+### 选项式与组合式
+- ==vue2只有选项式,vue3有选项式和组合式,以vue3为准==
+- 1.data
+- 选项式
   ```js
-    // 1.普通变量定义(写死的)
-    let msg = "msg-123" // const不能被重新赋值,这种定义的是常量,无法响应时更改
+    export default {
+        data() {
+            return {
+                message: 'Hello, Vue!',
+                count: 0
+            };
+        }
+    };
+  ```
+- 组合式
+  ```js
+    import { ref, reactive } from 'vue';
+
+    export default {
+        setup() {
+            const message = ref('Hello, Vue!');
+            const state = reactive({
+                count: 0
+            });
+
+            return { // 记得return
+                message,
+                ...toRefs(state) // 解构 reactive 对象时需要使用 toRefs 保持响应式
+            };
+        }
+    };
+  ```
+  > 选项式 API 里 data 是一个返回对象的函数，对象的属性自动成为响应式。而组合式 API 需手动使用 ref 或 reactive 创建响应式数据。==组合式的数据也要return,别忘了==
+- 2.props(setup还能接受哪些参数)
+  - 选项式
+  ```js
+    export default {
+        props: {
+            title: {
+                type: String,
+                default: 'Default Title'
+            },
+            num: Number
+        }
+    };
+  ```
+- 组合式
+  ```js
+    import { defineComponent, toRefs } from 'vue';
+
+    export default defineComponent({
+        props: {
+            title: {
+                type: String,
+                default: 'Default Title'
+            },
+            num: Number
+        },
+        setup(props) {
+            const { title, num } = toRefs(props);
+            // 使用 toRefs 确保解构后的 props 保持响应式
+            return {
+                title,
+                num
+            };
+        }
+    });
+  ```
+  > 选项式 API 直接在组件选项里定义 props。组合式 API 同样在组件定义里定义 props，但在 setup 函数中通过参数接收，并且如果要解构 props 并保持响应式，需要使用 toRefs。
+- 3.computed
+  - 选项式
+  ```js
+    export default {
+        data() {
+            return {
+                firstname: 'John',
+                lastname: 'Doe'
+            };
+        },
+        computed: {
+            fullname() {
+                return this.firstname + ' ' + this.lastname;
+            }
+        }
+    };
+  ```
+- 组合式
+  ```js
+    import { ref, computed } from 'vue';
+
+    export default {
+        setup() {
+            const firstname = ref('John');
+            const lastname = ref('Doe');
+
+            const fullname = computed(() => firstname.value + ' ' + lastname.value);
+
+            return {
+                fullname
+            };
+        }
+    };
+  ```
+  > 选项式 API 把计算属性定义在 computed 选项中，通过 this 访问其他数据。组合式 API 使用 computed 函数创建计算属性，传入一个返回计算结果的函数，访问响应式数据要通过 .value
+- 4.watch
+  - 选项式
+  ```js
+    export default {
+        data() {
+            return {
+                count: 0
+            };
+        },
+        watch: {
+            count(newVal, oldVal) {
+                console.log(`Count changed from ${oldVal} to ${newVal}`);
+            }
+        }
+    };
+  ```
+- 组合式
+  ```js
+    import { ref, watch } from 'vue';
+
+    export default {
+        setup() {
+            const count = ref(0);
+
+            watch(count, (newVal, oldVal) => {
+                console.log(`Count changed from ${oldVal} to ${newVal}`);
+            });
+
+            return {
+                count
+            };
+        }
+    };
+  ```
+  > 选项式 API 在 watch 选项里定义监听器，通过属性名指定要监听的数据。组合式 API 使用 watch 函数，直接传入要监听的响应式数据和回调函数。
+- 5.methods
+  - 选项式
+  ```js
+    export default {
+        data() {
+            return {
+                message: 'Hello'
+            };
+        },
+        methods: {
+            updateMessage() {
+                this.message = 'Updated message';
+            }
+        }
+    };
+  ```
+- 组合式
+  ```js
+    import { ref } from 'vue';
+
+    export default {
+        setup() {
+            const message = ref('Hello');
+
+            const updateMessage = () => {
+                message.value = 'Updated message';
+            };
+
+            return {
+                message,
+                updateMessage
+            };
+        }
+    };
+  ```
+  > 选项式 API 在 methods 选项中定义方法，通过 this 访问组件数据。组合式 API 直接在 setup 函数中定义函数，访问响应式数据要通过 .value。
+- 6.生命周期
+  [![pEouUnf.png](https://s21.ax1x.com/2025/04/24/pEouUnf.png)](https://imgse.com/i/pEouUnf)
+  - 选项式
+  ```js
+    export default {
+        data() {
+            return {
+                userData: null
+            };
+        },
+        beforeCreate() {
+            console.log('Before create: 实例初始化，数据未观测');
+        },
+        created() {
+            console.log('Created: 实例创建完成，开始请求数据');
+            // 模拟异步请求数据
+            setTimeout(() => {
+                this.userData = { name: 'John', age: 30 };
+                console.log('Data fetched:', this.userData);
+            }, 1000);
+        },
+        beforeMount() {
+          console.log('Before mount: 模板编译前');
+        },
+        mounted() {
+            console.log('Mounted: 模板挂载完成，开始操作 DOM');
+            const element = this.$el.querySelector('p');
+            if (element) {
+                element.style.color = 'red';
+            }
+        }.
+        beforeUpdate() {
+          console.log('Before update: 数据即将更新，当前 count:', this.count);
+        },
+        updated() {
+            console.log('Updated: 数据更新完成，当前 count:', this.count);
+            const element = this.$el.querySelector('span');
+            if (element) {
+                element.style.fontSize = '24px';
+            }
+        },
+        beforeUnmount() {
+            console.log('Before unmount: 组件即将卸载，清除定时器');
+            clearInterval(this.timer);
+        },
+        unmounted() {
+            console.log('Unmounted: 组件已卸载');
+        }
+    };
+  ```
+- 组合式
+  ```js
+    import { onBeforeMount, onMounted, onBeforeUpdate, onUpdated, onBeforeUnmount, onUnmounted } from 'vue';
+
+    export default {
+        setup() {
+            onBeforeMount(() => {
+                console.log('Before mount');
+            });
+
+            onMounted(() => {
+                console.log('Mounted');
+            });
+
+            onBeforeUpdate(() => {
+                console.log('Before update');
+            });
+
+            onUpdated(() => {
+                console.log('Updated');
+            });
+
+            onBeforeUnmount(() => {
+                console.log('Before unmount');
+            });
+
+            onUnmounted(() => {
+                console.log('Unmounted');
+            });
+
+            return {};
+        }
+    };
+  ```
+- ==选项式与组合式没有什么区别的方面==
+- 1.components
+- 选项式
+  ```js
+    import ChildComponent from './ChildComponent.vue';
+
+    export default {
+        components: {
+            ChildComponent
+        }
+    };
+  ```
+- 组合式
+  ```js
+    import ChildComponent from './ChildComponent.vue';
+
+    export default {
+        components: {
+            ChildComponent
+        },
+        setup() {
+            return {};
+        }
+    };
+  ```
+- 2.directives
+- 选项式
+  ```js
+    export default {
+        directives: {
+            focus: {
+                mounted(el) {
+                    el.focus();
+                }
+            }
+        }
+    };
+  ```
+- 组合式
+  ```js
+    export default {
+        directives: {
+            focus: {
+                mounted(el) {
+                    el.focus();
+                }
+            }
+        },
+        setup() {
+            return {};
+        }
+    };
+  ```
+### setup语法糖
+- 组合式写法,推荐使用`<script setup>`
+- ==总结几个重点: 1.定义变量更简单 2.不用return所有的变量 3.引入组件不需要components挂载 4.props和emit有单独的函数==
+- 不再写setup()函数了,语法糖即`<script setup> ... </script>`
+- ==1.**所有暴漏在顶层的代码都可以在tem中直接使用,不需要return**,顶层就是在script-setup语法糖内的全局环境==
+- 响应式变量的定义和普通常量的定义
+  ```js
+    // 1.普通变量定义,写死的数据,没有响应式
+    let msg = "msg-123"
     // 2.ref reactive定义的响应式变量
     let msgRef = ref("ref-123")
-    let msgRea = reactive({
+    let msgReactive = reactive({
         name: "kerwin",
         age: "100"
     })
-
-    ---------------------
-    测试: tempalte
-    msg: {{msg}} 
-    msgRef: {{msgRef}}
-    msgRea.name: {{msgRea.name}}
-    msgRea.age: {{msgRea.age}}
-
   ```
-- 2.曾经的toRefs()的转化,不用return,拿出来解构就行了
-    `const { name, age } = { ...toRefs(msgRea) } // reactive -> ref`
-    测试: `name: {{name.value}} age: {{age.value}}`
-- 3.计算函数没有变化,也是不用return,拿出去直接用
-    `const comKerwin = computed(() => name.value + "-12345")`
-    测试: `comKerwin: {{comKerwin}}`
+- 2.toRefs()的转化,直接解构reactive里面的数据
+  ```js
+    const { name, age } = { ...toRefs(msgRea) } // reactive -> ref
+  ```
+- 3.计算函数没有变化
+  ```js
+  const comKerwin = computed(() => name.value + "-12345")
+  ```
 - 4.引入组件,只需要import,无需挂载components:{},直接在tempalte里面用
-    `import Child from './Child.vue'` 
-    测试: `<Child></Child>`
-- 5.父子通信,这是改动最大的地方,因为setup()无法传递参数了,props和emit无从获取,==解决的方式是引入两个新的函数defineProps()和defineEmits()==,**注意:子组件照常引入即可**
-  - ==父传子: title || 子传父:(自定义事件) fromChild==
+    ```js
+      import Child from './Child.vue'
     ```
+- 5.父子通信,没有setup()传递参数了,无法获取props和emit,==所以引入两个新的函数defineProps()和defineEmits()==
+  - 父传子: title || 子传父:(自定义事件) fromChild
+    ```js
         tem:
         <Child :title="父kerwin" @left="fromChild"></Child>
         js:
@@ -1972,7 +2156,7 @@
         }
     ```
   - ==子组件(**重点,那2个新函数都在那里面**)==
-    ```
+    ```html
     <template>
         <div>
             <!-- 5 父子通信 -->
@@ -1983,37 +2167,36 @@
     </template>
 
     <script setup>
+      // 5.1 父传子之props
+      import { computed } from 'vue';
+      // 5.1.1 这样接受父组件的值,是为了子组件二次加工数据,记得props.XX
+      const props = defineProps({
+          title:{
+              type: String,
+              default : "父组件没有给你数据"
+          }
+      })
+      const compuTitle = computed(()=> props.title + "(加工后的)")
 
-    // 5.1 父传子之props
-    import { computed } from 'vue';
-    // 5.1.1 这样接受父组件的值,是为了子组件二次加工数据,记得props.XX
-    const props = defineProps({
-        title:{
-            type: String,
-            default : "父组件没有给你数据"
-        }
-    })
-    const compuTitle = computed(()=> props.title + "(加工后的)")
+      // 5.1.2 不想加工直接写,并且在tem中也直接用即可
+      defineProps({
+          title: {
+              type: String,
+              default: "父组件没有给你数据"
+          }
+      })
 
-    // 5.1.2 不想加工直接写,如下去写,并且在tem中也直接用即可
-    defineProps({
-        title: {
-            type: String,
-            default: "父组件没有给你数据"
-        }
-    })
-
-    // 5.2 子传父之emit
-    const emit = defineEmits(["left"]) // 存入父给子的"钥匙",父的自定义事件可能有多个,所以用数组封装,想给哪个自定义事件发消息就使用哪个"钥匙"
-    const handleClick = () => {
-        emit("left","我是子组件给父组件的信息")
-    }
+      // 5.2 子传父之emit
+      const emit = defineEmits(["left"]) // 存入父给子的"钥匙",父的自定义事件可能有多个,所以用数组封装,想给哪个自定义事件发消息就使用哪个"钥匙"
+      const handleClick = () => {
+          emit("left","我是子组件给父组件的信息")
+      }
 
     </script>
     ```
-    > 总结: props有两个写法(==加工是借助计算函数==),emit稍微变化,其余看代码即可,注释与逻辑很清晰
+    
 - 6.指令,全局指令不变,在main.js正常挂载,但是局部组件变量,无需directive挂载,如下
-  ```
+  ```js
     tem:
     <div v-kerwin>指令应用处</div>
 
@@ -2023,90 +2206,8 @@
         el.style.backgroundColor = "yellow"
     } 
   ```
-  > 命名有规则,使用驼峰写法,驼峰处对应着'-',如果直接原样写,不考虑v-XX系列,那么就是个普通函数vKerwin vKerwinDetail
+  > 命名有规则,使用驼峰写法,驼峰处对应着`-`
   > 例如: vKerwin -> v-kerwin ; vKerinDetail -> v-kerwin-detail 
-- 7.动态组件 :is="which" which可以直接放Child(引入的子组件),内部写三目或者函数都可以(一会用个老案例075改造),动态组件在template里面
-  - App:
-    ```
-    <template>
-        <div>
-            <Navbar v-show="show"></Navbar>
-
-            <!-- 动态组件, List/Detail 改为三目,true为List,false为Detail -->
-            <component :is="which ? List : Detail"></component>
-        </div>
-    </template>
-
-    <script setup>
-        import Navbar from './Navbar.vue';
-        import List from './List.vue';
-        import Detail from './Detail.vue';
-        import { provide, ref } from 'vue';
-
-        // which = true 选择List
-        const which = ref(true)
-        const show = ref(true)
-        // provide 公开which,名为which,具备响应式
-        provide("which", which)
-        provide("show", show)
-    </script>
-    ```
-  - List:
-    ```
-    <template>
-        <div>
-            <ul>
-                <li v-for="data in datalist" :key="data" @click="handleClick">
-                    {{ data }}
-                </li>
-            </ul>
-        </div>
-    </template>
-
-    <script setup>
-        import { ref, inject } from 'vue';
-
-        const datalist = ref(["aaa", "bbb", "ccc", "ddd", "eee"])
-        // 根据公开的名字,注入公开的信息which的值
-        const which = inject("which")
-        const handleClick = () => {
-            // 让父组件的which改为false,三目运算结果为Detail
-            which.value = false
-        }
-    </script>
-    ```
-    - Detail:
-    ```
-    <template>
-        <div>
-            detail <button @click="handleClick">返回</button>
-        </div>
-    </template>
-
-    <script setup>
-        // Detail刚加载完,执行show代码,涉及组合式的生命周期
-        import { inject, onMounted } from 'vue';
-        // mounted也变成函数,页面加载完成,自动执行回调函数
-        const show = inject("show")
-        const which = inject("which")
-
-        onMounted(() => {
-            show.value = false
-        })
-
-        const handleClick = () => {
-            show.value = true
-            // 动态组件的三目true为List
-            which.value = true
-        }
-    </script>
-    ```
-    > 其实核心逻辑也没啥,就是App父组件动态组件绑定的:which公开出去,使用三目控制which是true或false,从而使其变为List组件或Detail组件
-    > 而List和Detail组件则获取公开的which信息,然后通过点击事件给其赋true或false的布尔值,控制动态组件的变化
-- 8.provide 和 inject没有变化 ,在动态组件改造文件夹内部改造的案例就是这个075,内部有它们,可以看看
-- 9.内部有想要暴漏出去的函数或属性(比如子组件给父组件暴漏一些属性),使用defineExpose,然后父组件通过ref获取子组件实例后就可以获取到这个暴漏的属性了
-
-  
 ## 路由
 ### 路由对象结构
 - 一个路由对象的基本解构如下:
@@ -2966,7 +3067,7 @@
     </script>
   ```
   > 通过ref获取到dom节点后,在onMounted中完成自动聚焦
-- ==2.指令用法,vue2的选项式写法,局部挂载,**el参数**==
+- ==2.指令用法,选项式和组合式写法一样,如下,局部挂载,**el参数**==
   ```html
     <template>
       <div class="app">
@@ -2989,7 +3090,7 @@
     </script>
   ```
   > 通过directives挂载,把指令的名字(v-XXX)写在里面,可以多个
-- ==3.setup语法糖挂载==
+- ==3.setup语法糖挂载,比较特殊==
   ```js
     <script setup>
       // setup语法糖内的写法
@@ -3115,9 +3216,10 @@
 ### 自定义指令的优势
 - 比如格式化时间,比之前的utils函数和计算属性等方法简单(vue小项目的宏源旅途),代码简洁
 - 在TS+vue3的后台管理系统中,指令还可用于鉴定权限,权限不足的用户看不到一些按钮等
-### 过渡效果+案例 X
+## 过渡动画
+### 过渡效果
 - ==vue + css3实现动画效果==,有Transition和TransitionGroup两个,本节先讲Transition,这时个组件,内部写的元素会添加css3的动画效果,需要style的配置
-- - ==**进入或离开可以由以下的条件之一触发**==
+- ==**进入或离开可以由以下的条件之一触发**==
     1.由 v-if 所触发的切换
     2.由 v-show 所触发的切换
     3.由特殊元素 <component> 切换的动态组件
@@ -3235,7 +3337,7 @@
     </script>
   ```
   > 当年学css3的时候就见过这个animate.css,只需要把它npm下载到本地,==分为进enter-active-class和出leave-active-class两个class==,看着官网配置对应的class名即可获取对应的样式即可,**官网有详细教程**
-### 列表过渡 X
+### 列表过渡 
 - ==TransitionGroup组件内同时容纳多个孩子,最典型的就是v-for==
 - 代码:(对06增删列表的案例加动画效果)
   ```
@@ -3342,7 +3444,7 @@
         ==**看不懂去看kerwin的课064列表过渡,12min左右**==
       - 如果key值为index, 重温习diff算法,按照索引index对比,相同的复用,不同的重写,没有的删除,最后如果你删除了index=2的项,会有index=1复用,index=2没了,原index=3顶上,和未删减的index=2对比,发现变了,222转为333,然后最后index=3顶上了,删减版对比原数据没有index=3了,遵循没有的删除,index=3会被删除,删除的永远是最后一项,而非你点击的第二项,最后结果是index=1不变,index=2的数值由222变333,index=3被删除(而你del的是index=2哦,发现在diff下,index为key真乱啊,所以确保key的唯一性)
     - 5.==更加平滑的动画改进,也是固定写法,也可以被改名,即v-move和v-leave-active的'v',时间长短比动画animation设置的长一点会好看==
-### 可复用过渡 X
+### 可复用过渡 
 - 和我们自己造基于swiper的myswiper组件一样,这次我们基于Transition组件造我们自己的KerwinTransition组件
 - 代码(App,父,==导入组件过程略==)
   - ==把动画再次二次封装成动画效果组件 + 插槽==
@@ -3728,35 +3830,5 @@
     // 原来的: useDirectives(app)
     app.use(useDirectives)
   ```
-## 内置组件(了解)
-### teleport
-- 类似于react的Portals,把组件从当前组件树移动到别的组件树下
-- ==有2个属性==
-  - to: 移动到的指定目标元素,可以使用选择器
-  - disabled: 是否禁用teleport功能
-  ```html
-    <div class="content">
-      <div class="item">
-        <teleport to="body">
-          <Hello></Hello>
-        </teleport>
-      </div>
-    </div>
-  ```
-  > 把组件挂载到body上面,而不是item里面; 除此之外还可以挂载到其他元素上面,to='#XX/.XX'(id/class)
-  > 多个teleport指向同一个,不会覆盖,会合并
-### suspense (略)
-- 不重要
-## 渲染函数(了解)
-### 认识h函数(略)
-- ==vue推荐绝大多数情况下使用模板templete创建HTML==
-- Vue在生成真实的DOM之前，会将我们的节点转换成VNode，而VNode组合在一起形成一颗树结构，就是虚拟DOM（VDOM）
-  - 事实上，==我们之前编写的template 中的HTML 最终也是使用渲染函数生成对应的VNode==
-  - 那么，如果你想充分的利用JavaScript的编程能力，我们可以自己来编写createVNode 函数，生成对应的VNode,不使用vue的template
-- ==h() 函数是一个用于创建vnode的一个函数==
-- 其实更准确的命名是createVNode() 函数，简化为 h() 函数,它们本质都一样
-- ==使用h函数接受参数(3个)== 
-  - 标签名字(div)
-  - 属性和值(class: 'name',title: '内容'),
-  - 是否有子元素,再写新的createVNode
+
 
