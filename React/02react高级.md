@@ -277,6 +277,50 @@
     }
   }
   ```
+### 异步父传子(*)
+- 在做爱彼迎项目遇到的,==如果数据是通过网络请求异步获取的,那么子组件第一时间可能获取不到,有2种方式解决==
+  - 1.设置`?.`
+  - 2.设置初始化值
+  ```js
+    render() {
+  ->  const {productList = []} = this.props
+      return (
+        <div>
+          <h2>商品列表</h2>
+          <ul>
+          {
+  or ->       productList?.map(item => {
+                return <li key={item}>{item}</li>
+              })
+          }
+          </ul>
+        </div>
+      )
+    }
+  ```
+  > 杜绝出现从undefined中取值的想法
+- ==做爱彼迎还遇到了,一组房屋数据,有的数据item有这个项houseDesc,有的没有,针对这种我们可以==
+  ```js
+    {
+      houseRoom && 
+        (
+          <ul>
+            {
+              houseRoom?.houseDesc?.map(item => {
+                return <li key={item}>{item}</li>
+              })
+            }
+          </ul>
+        )
+    }
+  ```
+- ==针对父传子传参有时候也是服务器中提供的,但是有的有有的没有,比如==
+  ```js
+     // 假设infoData是服务器的数据,但是不一定每个TextItem组件都有这个数据
+     // 服务器中有的项配置infoData数据,有的项没有
+     <TextItem infoData={infoData || '没有数据'} />
+  ```
+  
 ### props类型验证
 - 父传子的参数进行限制,配置props类型
 - 对props类型进行验证,除了TS还可以有prop-types库

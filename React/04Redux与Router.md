@@ -1011,6 +1011,45 @@
       }
     })
   ```
+### RTK多个异步请求(*)
+- coderwhy老师提供 网络请求函数getHomeGoodPriceData和getHomeHighscoreData已经封装封装,只需知道它会返回请求好的promise对象 (同时`res.data`已经在axios封装处拦截处理了,所以不用`res.data`)
+  ```js
+      /** 多个异步请求,不建议堆叠await,阻塞进程; 同时不建议写多个createAsyncThunk,维护困难
+      *   还有第二个参数,action -> {getState,dispatch}
+      *   getState可以获取initialState所有的状态,可以获取state使用,但是如果要修改state,必须通过action函数,不可以直接赋值修改!
+      */
+      export const fetchHomeDataAction = createAsyncThunk('fetchHomeData', async (payload, {dispatch}) => {
+        getHomeGoodPriceData().then(res => {
+          dispatch(changeGoodPriceInfoAction(res)) // 通过action修改state的值
+        })
+        getHomeHighscoreData().then(res => {
+          dispatch(changeHighScoreInfoAction(res)) 
+        })
+      })
+
+      const homeSlice = createSlice({
+        name: 'home',
+        initialState: {
+          goodPriceInfo: {},
+          highScoreInfo: {}
+        },
+        reducers: {
+          changeGoodPriceInfoAction(state,{payload}){
+            state.goodPriceInfo = payload
+          },
+          changeHighScoreInfoAction(state,{payload}){
+            state.highScoreInfo = payload
+          }
+        }
+      })
+      // 记得导出action函数
+      export const {
+        changeGoodPriceInfoAction,
+        changeHighScoreInfoAction
+      } = homeSlice.actions
+      export default homeSlice.reducer
+    ```
+    > 不再通过extraReducers处理异步数据赋值state,而是转用reducers处理
 ### RTK多个异步请求(了解)
 - 豆包提供,有需自取
   ```js

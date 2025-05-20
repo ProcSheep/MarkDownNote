@@ -492,6 +492,82 @@
   ```
   > ==引入组件,组件的css对包裹内部的所有元素生效==
   > 为了更好的区分可以写多个组件,看个人,比如单独为section及其内部的元素提供小范围css支持
+### 共享主题方案(*)
+- 在做爱彼迎项目时,学习到的,styled-components可以提供主题,类似于store一样,也有一套生产者模式,如下
+- ==定制主题theme,另外Ant Design上面也有一些预制主题==
+  - styled-components有一个ThemeProvider方法,和共享store一样,可以共享主题
+    ```js
+      // 最外层index.js
+      // styled-components 主题共享
+      import { ThemeProvider } from 'styled-components'
+      // 引入css主题
+      import theme from '@/assets/theme' 
+
+      {/* 公开store */}
+      <Provider store={store}>
+        {/* 公开css主题 theme */}
+        <ThemeProvider theme={theme}>
+          <HashRouter>
+            <App />
+          </HashRouter>
+        </ThemeProvider>
+      </Provider>
+    ```
+  - 配置主题theme `assets/theme/index.js`
+    ```js
+      const theme = {
+        color: {
+          primaryColor: "#ff385c",
+          secondaryColor: "#00848A"
+        }
+      }
+
+      export default theme
+    ```
+    > 可以写多个,比如有的网站有白天和黑夜2个模式,这里也可以设置多个不同的主题
+  - ==使用主题,给Airbnb的logo和字体添加主题颜色==
+  - 同时给logo优化: 加点击cursor: pointer属性和间距等css样式
+    ```js
+      import styled from 'styled-components'
+
+      export const LeftWrapper = styled.div`
+          flex: 1;
+          color: ${props => props.theme.color.primaryColor};
+          .left{
+            display: flex;
+            align-items: center;
+            .logo{
+              padding-left: 15px;
+              cursor: pointer;
+            }
+          .text{
+            cursor: pointer;
+            padding-left: 8px;
+            color: ${props => props.theme.color.primaryColor};
+          }
+        } 
+    ```
+    > ==模板字符串中使用变量`${}`,传入的theme在props参数内,这是函数调用的一种特殊方式,所以可以直接在`${}`内直接获取到props,进而找到公开的主题==
+### 动态CSS in JS(*)
+- ==额外的,服务器还传递额外的字体颜色数据,如何向css in js中传递变量,前面也学习了,如下==
+    ```html
+    <!-- room-item: 传递服务器变量数据, 这里记得加$(文档要求的)  -->
+    <ItemWrapper $verifyColor={itemData?.verify_info?.text_color || '#39576a'}>
+      <!-- ..... -->
+    </ItemWrapper>
+    ```
+    > 传递参数前面记得加`$`
+- 内部css in js通过props获取使用即可
+  ```css
+     .desc {
+        margin: 10px 0 5px;
+        font-size: 12px;
+        font-weight: 700;
+        /* 接受服务器传递的动态文字颜色 */
+        color: ${props => props.verifyColor};
+      }
+  ```
+  > 这样css中的字体颜色可以动态更具服务器设置变化,同理别的属性都是这样
 
 ### css中的js变量
 - 在css in js中,css可以使用一些js的变量,其中包括一些state变量,这样可以通过js控制css的样式
