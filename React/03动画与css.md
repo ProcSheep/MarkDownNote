@@ -550,25 +550,39 @@
     > ==模板字符串中使用变量`${}`,传入的theme在props参数内,这是函数调用的一种特殊方式,所以可以直接在`${}`内直接获取到props,进而找到公开的主题==
 ### 动态CSS in JS(*)
 - ==额外的,服务器还传递额外的字体颜色数据,如何向css in js中传递变量,前面也学习了,如下==
+- 需要注意的是,需要使用Transient Props($prefix)
+  - ==通过在属性名前加 `$` 前缀（例如 $color），可以明确告诉 styled-components：这个属性仅用于样式计算==
+  - 防止这个属性被当作dom属性的一部分被加入,通常html标签会过滤这些无用的数据,但是建议不要这么做,react还会报警告
     ```html
-    <!-- room-item: 传递服务器变量数据, 这里记得加$(文档要求的)  -->
+    <!-- room-item: 传递服务器变量数据, 这里记得加$  -->
     <ItemWrapper $verifyColor={itemData?.verify_info?.text_color || '#39576a'}>
       <!-- ..... -->
     </ItemWrapper>
     ```
-    > 传递参数前面记得加`$`
 - 内部css in js通过props获取使用即可
   ```css
      .desc {
         margin: 10px 0 5px;
         font-size: 12px;
         font-weight: 700;
-        /* 接受服务器传递的动态文字颜色 */
-        color: ${props => props.verifyColor};
+        /* 接受服务器传递的动态文字颜色,给属性前面记得加$ */
+        color: ${props => props.$verifyColor};
       }
   ```
   > 这样css中的字体颜色可以动态更具服务器设置变化,同理别的属性都是这样
-
+- ==当然如果你就是想把这个属性作为dom的一部分,比如下面==
+- FooterWrapper直接添加name属性 name='XXX',然后在css应用这个属性判断要不要加特殊地theme主题色
+  ```jsx
+    <FooterWrapper name={name}>
+      <div className='info'>
+        <div className='text'>{showMessage}</div>
+        <IconMoreArrow />
+      </div>
+    </FooterWrapper>
+  ```
+  ```jsx
+    color: ${props => props.name ? props.theme.color.secondaryColor: "#000"};
+  ```
 ### css中的js变量
 - 在css in js中,css可以使用一些js的变量,其中包括一些state变量,这样可以通过js控制css的样式
 - ==1.共享主题方案==
@@ -783,3 +797,37 @@
     import classNames from 'classnames'
     <div className={classNames('aaa', { bbb: isbbb, ccc: isccc })}>嘿嘿嘿</div>
   ```
+## Less相关语法
+- 熟悉less一些简单的语法,有助于代码编写,可以看codewhy老师的视频,也可以自己摸索一些,现在记录一些用到过的
+  
+- 1.第一个子孩子`>`(不涉及深层,孙子等): 
+  ```css
+    .room{
+      > roomHeader{}
+    }
+
+    .roomList{
+      所有的子元素
+      > * {}
+    }
+  ```
+- 2.和`&`
+  ```css
+    1.等同于 className='bookList active' 
+    .bookList{
+      &.active {}
+    }
+    
+    2.添加:hover
+    .bookPagination{
+      &:hover{}
+    }
+  ```
+- 3.设置主题
+  ```css
+    --primaryColor--: #fff;
+  
+    ~ 别的文件使用记得先引入
+    color: var(--primaryColor--); 
+  ```
+

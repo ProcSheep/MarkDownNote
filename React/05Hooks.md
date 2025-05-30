@@ -89,7 +89,24 @@
   - ==一般来说，在函数退出后变量就会”消失”，而state 中的变量会被React 保留==
 - ==useState接受唯一一个参数==，在第一次组件被调用时使用来作为初始化值。（如果没有传递参数，那么初始化值为undefined）。
 - ==useState的返回值是一个数组，我们可以通过数组的解构==，来完成赋值会非常方便。
-  
+### useState初始化(*)  
+- 来自爱彼迎项目,关于异步数据下渲染useState的方案,这里我们想要用useState把一个异步数据作为自己的初始化值,但是会出现问题
+- ==useState特性==: 只有第一次数据初始化有效,后续数据更新无效,针对异步数据请求的数据,其实已经晚了,第一次在初始化数据时,useState已经定死了,不会再改变了
+- ==解决(代码有改动)==: 控制第一次渲染的时机 {判断条件 && 组件} 
+  ```js
+      // 父组件上,先决定要不要渲染tabs组件,如下
+      { isEmpty(discountInfo) && <HomeSectionV2 infoData={discountInfo}/>}
+  ```
+- 组件HomeSectionV2内部
+  ```js
+    /** 接受props */
+    const {infoData} = props
+    /** 定义本地state和处理数据 */
+    const initialName = infoData.names
+    const [name,setName] = useState(initialName) 
+  ```
+  > 这样只有传入组件的异步数据请求下来才会渲染组件,保证了组件第一次渲染的时候可以获取到异步数据,解决了useState特性引起的初始化数据无法更新的问题
+  > 同时还可以减少一次组件的渲染,原来的组件第一次渲染,传入的infoData是空的(异步),所以内部使用的是初始化的值,但是后面异步请求数据到达后,再传入infoData,组件内部props发生改变,又会渲染一次; 做过判断后,组件只会渲染一次,那就是只有当数据请求到达后,渲染一次
 ### 初识useEffect 
 - ==useEffect: 完成类组件中生命周期的功能==
 - 完成类似 网络请求,手动更新DOM,一些事件的监听; 都是React更新DOM的一些副作用
@@ -244,7 +261,7 @@
     // 类组件通用
     <button onClick={e => this.addNum()}></button>
   ```
-- 在函数组件中,事件分为2中
+- 在函数组件中,事件分为2种,传参的和不传参的
   ```js 
     function addNum(num){}
     function increment(){}
@@ -253,6 +270,7 @@
     // 不传参
     <button onClick={increment}>+1({count})</button>
   ```
+  > 注意: 在使用某些库的自带的监听事件时,如果有默认参数而不需要自己额外传入参数,一定要使用不传参格式; 因为选择传参格式但是不传参数会覆盖掉默认参数
 ## 其他的Hooks
 - 接下来的笔记:
   - ==**掌握state/effect后,已经完成Hooks中的80-90%的应用,已经可以独立开发react应用了,这是重点!!!**==
