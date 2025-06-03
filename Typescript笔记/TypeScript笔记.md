@@ -1,7 +1,4 @@
 # TypeScript
-
-## 初始 Ts
-
 - ==1.什么是 TypeScript?==
   - 加强版 js,全部支持 js,可转化为 js,支持 js 的 ES6789....,进行了语法扩充,比如可以==类型约束,枚举类型(Enum),元组类型(Tuple)==
   - ==**全局安装 ts**== `npm install typescript -g`
@@ -18,11 +15,12 @@
 - ==4.学习 Ts 的等级==
   - 1.知道 ts 但没有用过
   - 2.万物皆可 any
-  - 3.大多数 any,有些普通类型可以把我
+  - 3.大多数 any,有些普通类型可以掌握
   - ==4.大多数类型不是 any,可以把握很多类型(**到这里就挺好,高级前端工程师**)==
   - 5.可以使用 ts 封装一些工具,写一些框架,学会使用 ts 内置工具(==vue/react 开发人员水平==)
   - 6.会看 ts 源码(==TS 开发者水平==)
-
+- ==5.认识TS的本质==
+  - ts本身是类型检测的工具,是对js的补全,最大的作用就是在编译开发阶段,编译器给程序员提供类型检测,但是最终都要转为js才能运行,也就是说打包后的所有的ts都会变为js,所以你的ts只在开发阶段存在,在生产阶段就没有了,而且ts只是js的类型检测工具,没必要花很多时间去深入学习,基本的会了,最大到能看懂源码中的类型注解就够了,知道这个函数方法要输入什么输出什么,有几个参数等
 ## TS 基础语法
 
 ### 标识符类型注解
@@ -477,7 +475,7 @@
   interface IPerson {
     name: string;
     age: number;
-    friend?: {
+    friend?: { // 可选属性
       name: string;
     };
   }
@@ -487,8 +485,7 @@
     age: 20,
   };
 
-  // 访问属性: 可选链?
-  // ?前面如果为undefined,?后面不再执行
+  // ?可选链,如果前面为undefined,后面不执行 
   console.log(info.friend?.name);
 
   // 赋值: 可选链?不可以放在赋值语句左边,违反语法规则
@@ -645,7 +642,7 @@
   move(dog);
   ```
 
-## TS 类型-函数类型(难点)
+## TS 函数类型
 
 ### 函数的类型
 
@@ -725,6 +722,7 @@
       return 100;
     });
 
+    // 那么ts为什么这么设计?
     // 典型的例子
     const names = ["aaa", "bbb", "ccc"];
     // forEach有3个参数item index arr, 一般我们用forEach只用里面的item属性,所以不写全参数也可以,否则所有的参数都要写全会很不方便
@@ -745,7 +743,7 @@
 - 调用签名(Call Signaltures): 把函数当作对象使用时,给函数提供调用函数的功能,==函数作为对象可以有自己的属性,函数类型表达式有局限性,只能体现函数的方面,不能体现函数作为对象的方面==
 
   ```ts
-  // 1.函数类型表达式,使用它的函数不能定义属性
+  // 1.函数类型表达式,不能定义属性
   type BarType = (num1: number) => number;
   // 2.函数的调用签名(从对象角度看函数)
   interface IBar {
@@ -886,7 +884,7 @@ factory(Person);
 
 ### 确定 this 的类型(了解)
 
-- ==Vue3 Componsition API 和 react 的 Hooks 写法中,this 越来越少==,所以还是简单学习下 ts 中的 ts 问题,可能用不到.
+- ==Vue3 Componsition API 和 react 的 Hooks 写法中,this 越来越少==,所以还是简单学习下 ts 中的 `this` 问题,可能用不到.
 - ==配置 ts: `tsc init --> tsconfig.json`==
 - ==noImplicitThis: true , 不允许有模糊的 this 打开>>==
 
@@ -969,7 +967,7 @@ factory(Person);
 
 ### 类成员修饰符
 
-- 支持 3 中修饰符,==修饰类中的**属性和方法**(等于 java==)
+- 支持3种修饰符,==修饰类中的**属性和方法**(等于 java==)
 
   - pubild: 表示成员在任何地方可见,是共有的属性;默认就是 pubilc 属性
   - private: 仅在同一个类中可见,是私有属性
@@ -1027,7 +1025,7 @@ factory(Person);
 
 - 对类内部的==私有属性进行**访问或改写**==
 - ==应用: 可以拦截 set 和 get 操作,然后做些逻辑判断,比如\_age==
-
+- ==**私有属性private如果没有set和get,就只能在类内部修改和获取,由于在js中没有类成员修饰符,所以可以随意获取与修改,不过这是不安全的**==
   ```ts
   class Person {
     // 私有属性: 属性前面会加_(潜规则)
@@ -1405,12 +1403,7 @@ factory(Person);
     }
   ```
 
-## TS 泛型编程(最难)
-
-### 前情提要(必读)
-
-==**从映射类型(\*)开始,难度相当大,并且在业务中几乎用不到,属于 TS 级别中 5 和 6 的级别(框架作者,TS 作者)**==
-
+## TS 泛型编程
 ### 类型参数化
 
 - ==类型参数化: 防止类型丢失,每个 res 都有自己的类型;同时更加灵活地确定参数类型==
@@ -1482,7 +1475,7 @@ const kun1: IKun = {
   age: 12,
   singal: "hahaha",
 };
-// 传递
+// 传参number,不使用默认类型string
 const kun2: IKun<number> = {
   name: 123,
   age: 12,
@@ -1582,11 +1575,603 @@ export {};
   const name1 = getObjectProperty(info, "age");
   // const name2 = getObjectProperty(info,"address") // X
   ```
+## TS 知识扩展
+### TS模块化
+- ==1.js的模块化==:
+  - ==CommonJs== -> node环境/webpack/vite -> `module.exports`
+  - ==EsModule== -> `import/export`
+  > 随着es模块化被加入js规范中,es模块化越来越通用,包括node/webpack/vite都可以支持es模块化
+- ==2.js/ts中什么是一个模块?==
+  - JavaScript 规范声明任何没有 export 的 JavaScript 文件都应该被认为是一个脚本，而非一个模块。
+  - 在一个脚本文件中，变量和类型会被声明在共享的全局作用域(==会极大概率导致重名==)，将多个输入文件合并成一个输出文件，或者在HTML使用多个`<script>`标签加载这些文件。
+  ◼ 如果你有一个文件，现在没有任何import 或者export，但是你希望它被作为模块处理，添加这行代码`export {}`,==这也是为什么我们每个ts练习代码都要加这行代码的原因,不添加后导致所有ts文件无法模块化,相互影响==
+  ◼ `export {}`这段代码会把文件改成一个没有导出任何内容的模块，这个语法可以生效，无论你的模块目标是什么
+- ==3.内置类型导入==
+- ts支持类型的导入,如下
+  ```ts
+    // utils/type.ts
+    export type IDType = number | string
+  ```
+  ```ts
+    import { type IDType } from "./utils/type";
 
-### 映射类型(\*)
+    let id1: IDType = '001'
+    let id2: IDType = 1
+    console.log(id1,id2)
+  ```
+  > ==在这里我们推荐加入type前缀,这样可以减少不必要的代码解析==
+  > ==原因==: ts代码最终会经过编译器babel或esbuild(vite)等,转化为js代码,而这个类型ts只会在开发环境中使用类型检测提醒程序员有没有写错类型,但是在转为js代码后,ts的所有类型检测都是没有用的,额外的解析这些引入是无意义的,所以添加type前缀后,编译器在解析ts代码时,会把这些无意义的类型引入直接删除,减少编译时间;
+  > ==额外的==: 如果类型引入过多,可以统一在`{}`前加一个type即可,不必每个类型前面一个个添加type
 
+### 命名空间(了解)
+- 在esmodule之前,前端关于模块化百花齐放,这个命名空间就是ts推出的模块化方法,==但是随着es模块化推出,ts官方已不推荐使用命名空间了==
+- 命名空间中的语法在esmodule中都涵盖了,有些旧文档项目可能会有命名空间的使用,了解一下即可
+  ```ts
+    // utils/format.ts
+    // 如果外界要使用,要export导出
+    // 命名空间的内部之间不互相干扰
+    export namespace price{
+      export function format (price: number) {
+        return price + '元'
+      }
+    }
+
+    export namespace date{
+      export function format (date: number) {
+        return date + '天'
+      }
+    }
+  ```
+  ```ts
+    import {price,date} from './utils/format'
+
+    // 使用命名空间
+    price.format(10)
+    date.format(15)
+  ```
+### webpack中运行ts
+- 运行ts的方法,比如单个简单的文件,运行方式`ts-node 文件名`; 还有一个方式,在运行项目时,有太多的ts文件,而且有时需要浏览器显示,所以可以在webpack环境中运行ts代码
+- ==在webpack中自动运行ts的步骤==: 
+  - 初始化项目: `npm init` 
+  - webpack的核心: `npm i webpack webpack-cli -D` 
+  - 配置 webpack.config.js, 具体代码略(忘记了复习一下)
+  - 解析loader: `npm i ts-loader -D`, 必须有tsconfig.js文件(命令: `ts --init`)
+  - html文件提供页面: `npm i html-webpack-plugin -D`, 记得创建html文件
+  - 把程序跑起来: `npm i webpack-dev-server`, 配置package.json中的script`{ serve: webpack serve }` 
+  - 启动程序: `npm run serve`
+  > ==接下来许多测试均在webpack环境中进行测试==
+### 类型声明
+- 1.之前我们所有的typescript中的类型，几乎都是我们自己编写的，但是我们也有用到一些其他的类型：
+  - 大家是否会奇怪，我们的`HTMLImageElement`类型来自哪里呢？甚至是`document`为什么可以有`getElementById`的方法呢？==即在vscode中写代码时,会自动提示下一步可能要调用什么方法==
+- 2.其实这里就涉及到typescript对类型的管理和查找规则了。
+  - ==我们这里先给大家介绍另外的一种typescript文件：.d.ts文件==,我们之前编写的typescript文件都是.ts 文件，这些文件最终会输出.js 文件，也是我们通常编写代码的地方；
+  - ==还有另外一种文件.d.ts文件，它是用来做类型的声明(declare)，称之为类型声明（Type Declaration）或者类型定义（Type Definition）文件。内部只有声明的代码,没有任何常规的逻辑代码==
+  - 它仅仅用来做类型检测，告知typescript我们有哪些类型；而这些类型声明在我们写代码时可以给我们提示
+- 3.通过点击document进入源码,如下
+  [![pV93RBR.png](https://s21.ax1x.com/2025/05/31/pV93RBR.png)](https://imgse.com/i/pV93RBR)
+- ==**4.那么typescript会在哪里查找我们的类型声明呢？**==
+- ==4.1内置类型声明==: typescript自带的
+  - typescript仓库中的lib中存放着所有的声明文件: https://github.com/microsoft/TypeScript/tree/main/src/lib
+  - 创建过tsconfig.json文件(命令: `ts --init`): 内部的配置过target和lib来决定哪些内置类型声明是可以使用的 (了解), 有些框架比如vite会自动帮你配置
+- ==4.2外部定义类型声明==: 第三方库,例如 react/axios等
+  - 比如axios,本身自带类型声明文件,直接可以在ts中使用
+    [![pV98bGT.png](https://s21.ax1x.com/2025/05/31/pV98bGT.png)](https://imgse.com/i/pV98bGT)
+  - ==有的库没有类型声明文件,比如react,则无法直接在react中使用==
+   [![pV98HiV.png](https://s21.ax1x.com/2025/05/31/pV98HiV.png)](https://imgse.com/i/pV98HiV)
+  - ==社区的一个公有库DefinitelyTyped存放类型声明文件==,该库的GitHub地址: https://github.com/DefinitelyTyped/DefinitelyTyped/
+  - ==npm官网搜索 `@types/库名`==,一般可以搜到ts类型声明的第三方包,几乎都是这么命名的,react的命令为`npm i @types/react --save-dev`,在下面的文件中找下载的声明文件
+  [![pV98qRU.png](https://s21.ax1x.com/2025/05/31/pV98qRU.png)](https://imgse.com/i/pV98qRU)
+- ==4.3自己定义类型声明==
+  - 假如有的第三方库搜不到官方的类型声明文件时,就需要自己写一个声明文件,假如lodash没有(实际上有),仅下载lodash文件
+  - 自己定义类型声明文件如下,后面学习declare
+    ```ts
+      // types/why.d.ts
+      // 声明模块
+      declare module "lodash" {
+        // 声明模块下的一个函数
+        export function join(...args: any): any
+      }
+    ```
+    ```ts
+      // index.ts
+      import _ from 'lodash'
+      _.join()
+    ```
+  - ==还可以给自己编写的代码编写类型声明==,不过平时定义使用声明,或许只会用一次,没有必要随便一个类型声明就写在`.d.ts`文件中,如下
+    ```ts
+      // why.d.ts
+      // 类型
+      type IdTypes = string | number 
+      interface IKun{
+        name: string
+        age: number
+        slogan: string
+      }
+    ```
+    > 上面这种直接写普通ts文件即可,下面紧接着使用这个类型,大概率这个声明类型只会用一到两次
+  - ==但是有的场景需要类型声明,比如声明全局的变量,函数,类等==
+  - 比如在index.html文件下,定义了这些,==看注释==
+    ```html
+      <body>
+        <script>
+          const whyName = 'codewhy'
+
+          function foo(bar) {
+            return 'hello world' + bar
+          }
+
+          class Person {
+            constructor(name, age) {
+              this.name = name
+              this.age = age
+            }
+          }
+        </script>
+    ->  <!-- webpack打包后,会把bundle.js文件放在这里引入index.html文件,所以上面的定义正常js文件可以获取,但是ts需要额外定义,它找不到模块 -->
+      </body>
+    ```
+  - 在`why.d.ts`中定义类型
+    ```ts
+      // 全局变量
+      declare const whyName: string
+      // 函数
+      declare function foo(bar: string):string
+      // 类
+      declare class Person {
+        // 定义类的属性
+        name: string
+        age: number 
+        // 可传入的属性和类型
+        constructor(name: string , age: number)
+      }
+      // 语法糖
+      declare class Person {
+        constructor( public name: string , public age: number)
+      }
+    ``` 
+  - index.ts中有了类型声明后,就可以直接使用了
+    ```ts
+      console.log(whyName)
+      console.log(foo('小明'))
+      const p1 = new Person('kiki', 20)
+      console.log(p1.name, p1.age)
+    ```
+### declare声明模块
+- 前面学习了`declare`的使用,可以单独的小部分声明,如上一节,而对于内部可能有多个声明的,比如举例的lodash,可以声明模块的语法: `declare module '模块名' {}`,在声明模块的内部，我们可以通过`export`导出对应库的类、函数等
+- ==另外的,ts要对一些文件进行声明,比如不认识图片==
+  ```ts
+    // 声明(图片)文件
+    declare module "*.png"
+    declare module "*.jpg"
+    declare module "*.jpeg"
+    declare module "*.svg"
+    declare module "*.gif"
+  ```
+  > 记得webpack对图片进行loader配置
+  > 其实ts对`.vue`都是不识别的,不过vite脚手架已经配置好了,所以可以用,而且vue文件不是作为模块引入的,是作为组件引入的,它有自己的类型,这个不用管,vite已经弄好了
+- ==CDN引入文件时,如何进行声明==
+  - 比如直接CDN引入jquery,CDN地址：https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.js
+  - 此时使用`declare`声明为一个模块,但是模块是需要引入的,我们用的CDN,所以在`node_mudules`中根本没有jquery模块,无法引入
+    ```ts
+      declare module "$" {
+        // .......
+      }
+    ```
+  - ==此时使用declare命名空间==
+    ```ts
+      declare namespace "$" {
+        export function ajax(settings: any): any
+      }
+    ```
+### 认识tsconfig.json
+- ==1.什么是tsconfig.json文件呢？（官方的解释）==
+  - 当目录中出现了tsconfig.json 文件，则说明该目录是 TypeScript 项目的根目录；
+  - tsconfig.json 文件指定了编译项目所需的根目录下的文件以及编译选项。
+- ==2.对官方解释总结一下==
+  - ==作用一（主要的作用）==：让TypeScript Compiler在编译的时候，知道如何去编译TypeScript代码和进行类型检测；
+    - 比如是否允许不明确的this选项，是否允许隐式的any类型；
+    - 将TypeScript代码编译成什么版本的JavaScript代码；
+  - 作用二：让==编辑器（比如VSCode）==可以按照正确的方式识别TypeScript代码,== 对于哪些语法进行提示、类型错误检测等等==；
+- ==3.jsconfig.json==
+  - JavaScript 项目可以使用 jsconfig.json 文件，它的作用与 tsconfig.json 基本相同，只是默认启用了一些 JavaScript 相关的编译选项,在之前的Vue项目、React项目中我们也有使用过,jsconfig可以让编译器提供更好的提示,也配置过别名`@`等
+- ==4.tsconfig.json的配置==
+  - tsconfig.json在编译时如何被使用呢?
+    - 在调用tsc命令并且没有其它输入文件参数时，编译器将由当前目录开始向父级目录寻找包含tsconfig 文件的目录。
+    - 调用tsc命令并且没有其他输入文件参数，可以使用--project （或者只是-p）的命令行选项来指定包含了tsconfig.json 的
+  目录；
+    - ==当命令行中指定了输入文件参数，tsconfig.json 文件会被忽略, 例如`tsc index.ts`==
+  - ==webpack中使用ts-loader进行打包时，也会自动读取tsconfig文件，根据配置编译TypeScript代码。==
+  - tsconfig.json文件包括哪些选项呢？
+     - tsconfig.json本身包括的选项非常非常多，我们不需要每一个都记住；
+     - ==可以查看文档对于每个选项的解释==: https://www.typescriptlang.org/tsconfig
+     - 当我们开发项目的时候，选择TypeScript模板时，tsconfig文件默认都会帮助我们配置好的, ==比如vite,几乎不需要你做任何事情==
+- ==5.常见的编译选项==
+- 默认的tsconfig.json结构如下
+  [![pV92MtK.png](https://s21.ax1x.com/2025/06/01/pV92MtK.png)](https://imgse.com/i/pV92MtK)
+- 对于compilerOptions编辑如下 (详情见文档: https://www.typescriptlang.org/tsconfig)
+  [![pV92QfO.png](https://s21.ax1x.com/2025/06/01/pV92QfO.png)](https://imgse.com/i/pV92QfO)
+  [![pV92Kk6.png](https://s21.ax1x.com/2025/06/01/pV92Kk6.png)](https://imgse.com/i/pV92Kk6)
+## TS Axios封装
+- 二次封装的好处:
+  [![pV9h1UI.png](https://s21.ax1x.com/2025/06/01/pV9h1UI.png)](https://imgse.com/i/pV9h1UI)
+### 初始封装
+- 初步创建网络请求的文件夹目录
+  - service
+    - request: axios二次封装的地方
+    - modules: 单独的网络请求
+    - config:固定的配置
+- ==1.初始的axios封装==
+  ```ts
+    // request/index.ts
+    import axios from 'axios'
+    import type {AxiosInstance,AxiosRequestConfig} from 'axios' // babel转化ts->js代码时,会自动删除类型的引入
+
+    class HYRequest {
+      instance: AxiosInstance // 必写的,ts需要确定instance的类型
+
+      // 每次使用都会创建一个新的axios实例,实例对象之间配置互不干扰
+      // 这里的congif类型在源码中为CreateAxiosDefaults,它继承自AxiosRequestConfig,coderwhy老师选择AxiosRequestConfig,区别不大
+      constructor(config: AxiosRequestConfig){ // 更好的提示,更加的灵活
+        this.instance = axios.create(config)
+      }
+
+      // 封装网络请求的方法
+      request(config: AxiosRequestConfig){
+        return this.instance.request(config)
+      }
+    }
+
+    export default HYRequest
+  ```
+- ==注意的点==
+  - 1.instance和config的类型都是根据axios.create()提示的ts源码(axios.d.ts)获取到的
+  - 2.使用config作为参数时为了更加灵活的传参,别人使用这个库时可以不严格按照某些特定的顺序,并且借用axios的ts类型,所以会有等同于axios的友好提示
+  - 3.每次使用这个类都会创建一个新的axios实例对象,实例对象之间配置互不干扰,如下
+    ```ts
+      // service/index.ts
+      import { BASE_URL, TIME_OUT } from "./config";
+      import HYRequest from "./request";
+
+      // 我可以写多个实例对象,每个实例对象都有自己的配置
+      const hyRequest1 = new HYRequest({
+        baseURL: BASE_URL,
+        timeout: TIME_OUT
+      })
+
+      // const hyRequest2 = new HYRequest({ 独有的配置... }) 
+      // const hyRequest3 = new HYRequest({ 独有的配置... }) 
+
+      export {
+        hyRequest1
+      }
+    ```
+    > 常量的config的书写就省略了
+- ==2.请求的测试== 
+    ```ts
+      // modules/home/index.ts
+      import { hyRequest1 } from "..";
+      
+      // 发送网络请求 ....
+      hyRequest1.request({
+        url: '/home/multidata'
+      }).then(res => console.log(res))
+    ```
+- ==3.引入webpack的依赖图==
+- 因为是webpack环境,所以打包时,需要将home引入webpack的依赖图
+  ```ts
+    // src/index.ts
+    import './service/modules/home' // 引入webpack的依赖图
+  ```
+### 添加拦截器
+- ==拦截器: 应用比如有: 蒙版isLoading,请求携带token,修改配置(返回自带.data)==
+  >
+- ==1.添加基础的公有拦截器==
+  ```ts
+    class HYRequest {
+      instance: AxiosInstance
+
+      constructor(config: AxiosRequestConfig){ 
+        this.instance = axios.create(config)
+
+        // 给每一个实例添加拦截器
+        this.instance.interceptors.request.use((config)=>{
+          console.log('全局请求成功拦截')
+          return config
+        }, err => {
+          console.log('全局请求失败拦截')
+          return err
+        })
+
+        this.instance.interceptors.response.use((res)=> {
+          console.log('全局响应成功拦截')
+          return res
+        },err => {
+          console.log('全局响应失败拦截')
+          return err
+        })
+      }
+
+      // 封装网络请求的方法
+      request(config: AxiosRequestConfig){
+        return this.instance.request(config)
+      }
+    }
+  ```
+  > ==这样添加拦截器有个缺点,就是所有的拦截器都是写死在全局的,接下来我们要给config封装一个可以自定义传递的拦截器==
+- ==2.自定义拦截器==
+- 2.1 config的类型问题,如上我们的config直接使用axios内部config类型AxiosRequestConfig,而这个类型内部是没有关于拦截器参数的定义声明的,所以我们要自己写一个,如下
+  ```ts
+    interface HYInterceptors {
+      // 源码中,config的类型现在已经改为InternalAxiosRequestConfig,它继承自AxiosRequestConfig
+      // 老师当时还是AxiosRequestConfig版本,这里略微更新一下,其实区别也不大
+      requestSuccessFn?: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig
+      requestFailureFn?: (err: any)=> any
+      responseSuccessFn?: (res: AxiosResponse) => AxiosResponse
+      responseFailureFn?: (err: any)=> any
+    }
+
+    // 针对AxiosRequestConfig进行扩展
+    interface HYRequestConfig extends AxiosRequestConfig{
+      interceptors ?: HYInterceptors
+    }
+  ```
+  > ==1.首先对原有的AxiosRequestConfig进行扩展,那么定义新的类型HYRequestConfig继承自它,然后添加拦截器类型声明(自定义的,可选的)==
+  > ==2.拦截器属性获取是对象类型,用interface定义,然后内部四个属性自定义名字(都是可选的),然后关于它们的类型都是去axios源码中复制对应类型找到的,寻找过程大致如下,学会基础TS,能看懂源码的类型声明来自哪里就足够了==
+  [![pV9h35t.png](https://s21.ax1x.com/2025/06/01/pV9h35t.png)](https://imgse.com/i/pV9h35t)
+- 2.2 添加特殊的拦截器声明,拦截器可以有多个
+  ```ts
+    class HYRequest {
+      instance: AxiosInstance
+
+      constructor(config: HYRequestConfig){ 
+        this.instance = axios.create(config)
+
+        // 给每一个实例添加拦截器
+        this.instance.interceptors.request.use((config)=>{
+          // ....
+        })
+
+        this.instance.interceptors.response.use((res)=> {
+          // ....
+        })
+
+        // 针对特定的拦截器,如果有就在原有的基础上添加新的拦截器,拦截器可以有多个
+        if(config.interceptors) { // 只要传入的config参数中有interceptors属性,就添加它的专属拦截器
+          this.instance.interceptors.request.use(
+            config.interceptors.requestSuccessFn,
+            config.interceptors.requestFailureFn
+          )
+          this.instance.interceptors.response.use(
+            config.interceptors.responseSuccessFn,
+            config.interceptors.responseFailureFn
+          )
+        }
+      }
+
+      // 封装网络请求的方法
+      request(config: AxiosRequestConfig){
+        return this.instance.request(config)
+      }
+    }
+  ```
+- 2.3 测试拦截器的效果
+  ```ts
+    // service/index.ts
+    const hyRequest1 = new HYRequest({
+      baseURL: BASE_URL,
+      timeout: TIME_OUT
+    })
+
+    // 爱彼迎的数据有自己独有的拦截函数处理,既有全局的拦截器,也有自己的
+    const hyRequest2 = new HYRequest({
+      baseURL: "http://codercba.com:1888/airbnb/api",
+      timeout: 8000,
+      interceptors: {
+        requestSuccessFn(config) {
+          console.log('爱彼迎请求成功的拦截')
+          return config
+        },
+        requestFailureFn(err) {
+          console.log('爱彼迎请求失败的拦截')
+          return err
+        },
+        responseSuccessFn(res) {
+          console.log('爱彼迎响应成功的拦截')
+          return res
+        },
+        responseFailureFn(err) {
+          console.log('爱彼迎响应失败的拦截')
+          return err
+        },
+      }
+    })
+  ```
+  ```ts
+    // modules/index.ts
+
+    hyRequest1.request({
+      url: '/home/multidata'
+    }).then(res => console.log(res))
+
+
+    hyRequest2.request({
+      url: '/home/discount'
+    }).then(res => console.log(res))
+  ```
+### 单次请求拦截(理解)
+- 这个功能用的少,即使没有封装也可以,而且由于axios的声明更新了,所以更改后的封装可能有疏漏
+- ==前面已经写了全局拦截和实例个性化拦截两种拦截机制,现在写单次网络请求的拦截,即只针对某一次网络请求的拦截,不会把拦截加到实例上,如果注释掉此次网络请求,对应的拦截操作也会消失==
+- ==稍微比较复杂,不过这个方法用的比较少==
+  ```ts
+    // 封装网络请求的方法
+    // 添加单次网络请求的拦截器,不可以添加到实例对象上
+    // 拦截器的本质就是钩子函数,在对应的时机回调拦截器的函数
+    request(config: HYRequestConfig){
+      if(config.interceptors?.requestSuccessFn){
+        config.headers = config.headers || new AxiosHeaders() // 防止安全漏洞,成功的回调参数类型InternalAxiosRequestConfig需要headers
+        // 1.单次请求成功的请求拦截
+        config = config.interceptors.requestSuccessFn(config as InternalAxiosRequestConfig) // 类型断言as帮助跳过ts检测
+      }
+
+      // 拆分网络请求,从内部拿响应数据res,在返回res之前调用响应拦截的回调函数,传入初始数据res,获取可能改变的res返回出去 -> resolve(res)
+      return new Promise((resolve,reject) => {
+        this.instance.request(config).then(res => { // .then成功请求到数据
+          // 2.单次请求成功的响应拦截
+          if(config.interceptors?.responseSuccessFn){
+            // res被拦截后,在回调函数内部可能被改变
+            res = config.interceptors.responseSuccessFn(res)
+          }
+          resolve(res) // 返回新的res
+        }).catch(err => {
+          reject(err)
+        })
+      })
+    }
+  ```
+- ==注意的点==
+  - 1.coderwhy老师那时候代码还没有改变,现在的拦截器成功回调函数的参数config的类型已经为InternalAxiosRequestConfig
+      ```ts
+        interface HYInterceptors {
+          // 源码中,config的类型现在已经改为InternalAxiosRequestConfig,它继承自AxiosRequestConfig
+          // 老师当时还是AxiosRequestConfig版本
+          requestSuccessFn?: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig
+          // ...
+        }
+      ```
+  - 所以在ts类型检测上强行先断言config类型为InternalAxiosRequestConfig,毕竟config的类型HYRequestConfig是我们自己扩展的,这个类型继承自AxiosRequestConfig,正是InternalAxiosRequestConfig继承的它,但是新增一个属性headers,这个属性添加了许多方法(set get ...)供我们使用,所以如果直接使用HYRequestConfig,ts会检测我们缺少headers属性,所以需要断言为InternalAxiosRequestConfig,然后再填补上headers的空缺,弥补漏洞,目前的知识水平只能做到这里
+  - 2.內部做了参数请求的拦截,获取新的config; 响应数据的拦截,获取的新的res,如下图
+    [![pVCkok9.png](https://s21.ax1x.com/2025/06/02/pVCkok9.png)](https://imgse.com/i/pVCkok9)
+- ==2.测试拦截效果==
+  ```ts
+    // 在单次请求上添加拦截,注释掉后就不会有里面的拦截了
+    hyRequest2.request({
+      url: '/home/plus',  
+      interceptors: {
+        requestSuccessFn(config){
+          console.log('单次请求拦截成功',config)
+          // 对请求参数config做处理 + authToken ...
+          return config
+        },
+        responseSuccessFn(res) {
+          console.log('单次响应拦截成功',res)
+          // 对响应数据res做处理, 数据格式整理....
+          return res
+        }
+      }
+    }).then(res => console.log('最终数据',res))
+  ```
+### 返回数据的规范(巨难)
+- ==1.处理返回数据的类型==
+- 首先promise返回的数据如果没有写类型,那么会默认为unknown,ts的这个类型数据有一个特点,就是无法做任何操作,比如`res.XXX`
+- 所以根据上面我们可以给promise定义一个返回的类型,如下
+  ```ts
+    return new Promise<AxiosResponse>((resolve,reject) => {})
+  ```
+  > 这是一个标准的Promise返回数据res类型(AxiosResponse)
+- 但是我们只需要res.data的数据,这是响应数据,所以我们在全局拦截器中修改返回的数据为res.data(==别忘记这一步,代码略==),这样的话返回的promise的数据res就不再是AxiosResponse类型,而是其内部的res.data,而这个是响应数据,响应数据千变万化的,它的类型不能写死,所以我们使用泛型,在调用request的时候把对应的数据类型传入,默认为any,这样即使不传类型,promise返回也是个any类型,总比unknown类型要好
+  ```ts
+    // 传入request函数的泛型T会被传入promise中
+     return new Promise<T>((resolve,reject) => {
+      this.instance.request(config).then(res => {
+        if(config.interceptors?.responseSuccessFn){
+          // ....
+        }
+        resolve(res) // res的类型为T
+      }).catch(err => {
+        reject(err)
+      })
+    })
+  ```
+- ==2.解决内部request的类型问题==
+- 从上面的代码中,Promise的响应数据res类型被解决了,但是这个res是网络请求方法request的then回调参数res,这个res类型和T不一样(实际上它也是AxiosResponse),所以依据通过泛型去解决,结合request方法的源码,把T泛型传入正确的位置,从而覆盖request原本的类型
+  ```ts
+    return new Promise<T>((resolve,reject) => {
+      // 泛型T传入它的第二个参数,第一个填充为any
+      this.instance.request<any,T>(config).then(res => {})
+    })
+  ```
+  [![pVCk4w4.png](https://s21.ax1x.com/2025/06/02/pVCk4w4.png)](https://imgse.com/i/pVCk4w4)
+- 这样就可以自己规定返回值的类型T,不写默认为any,都不影响,而且可以直接获取到res.data内部的数据,因为有T的类型提示,所以写代码提示也更好
+  ```ts
+    interface IHomeData{
+      data: any,
+      returnCode: string,
+      success: boolean
+    }
+
+    // 有了类型定义,作为泛型T传入,res可以获取更好的类型提示
+    hyRequest1.request<IHomeData>({
+      url: '/home/multidata'
+    }).then(res => console.log(res.data,res.returnCode,res.success))
+
+
+    interface IHomeDiscount{
+      dest_address: any[],
+      dest_list: any,
+      subtitle: string,
+      title: string,
+      type: string,
+      _id: string
+    }
+
+    hyRequest2.request<IHomeDiscount>({
+      url: '/home/discount'
+    }).then(res => console.log(res))
+  ```
+  [![pVCk5TJ.png](https://s21.ax1x.com/2025/06/02/pVCk5TJ.png)](https://imgse.com/i/pVCk5TJ)
+- 3.处理单次请求拦截回调中的res类型,初始定义如下
+  ```ts
+    // 初始定义的类型
+    responseSuccessFn?: (res: AxiosResponse) => AxiosResponse
+
+    this.instance.request<any,T>(config).then(res => {  // res被修改为T
+      if(config.interceptors?.responseSuccessFn){
+        res = config.interceptors.responseSuccessFn(res) // 这里的类型要求还是AxiosResponse
+      }
+      resolve(res) 
+    })
+  ```
+- 在修改request的res返回数据后,res的类型已经为T,但是这里面responseSuccessFn中的res类型还是为AxiosResponse,简便方式当然是把AxiosResponse全修改为any类型,但是有更加精细的方式,如下,把T的类型通过泛型一点点传到原先定义responseSuccessFn的地方去
+  ```ts
+    interface HYInterceptors<T = AxiosResponse> {
+      requestSuccessFn?: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig
+      requestFailureFn?: (err: any)=> any
+      responseSuccessFn?: (res: T) => T
+      responseFailureFn?: (err: any)=> any
+    }
+
+    // 针对AxiosRequestConfig进行扩展
+    interface HYRequestConfig<T = AxiosResponse> extends AxiosRequestConfig{
+      interceptors ?: HYInterceptors<T>
+      // ...
+    }
+
+    // 同步T
+    request<T = any>(config: HYRequestConfig<T>){}
+  ```
+  [![pVCkTYR.png](https://s21.ax1x.com/2025/06/02/pVCkTYR.png)](https://imgse.com/i/pVCkTYR)
+### 总结
+- 总结如下
+  ```ts
+    /**
+    * 难点
+    * 1. 拦截器精细化控制
+    *  全局拦截器*
+    *  实例拦截器**
+    *  单次请求拦截器****
+    * 
+    * 2.响应结果数据类型处理(泛型)*****
+    * 
+    * 未来,文件上传等功能都可以在这里基础上继续封装(Node高级)
+    */
+  ```
+
+
+## 内置工具和类型体操(X)
+- 类型体操的仓库: `https://github.com/type-challenges/type-challenges`,另外类型体操的题解网站已经收藏(加载可能需要额外等待一会,刷新一下)
+- ==**这个阶段(5,6)的TS对普通开发业务没有必要,平常用处不大,选择性了解即可**==
+### 映射类型
 - 映射类型: 一个类型需要基于另一个类型,不想要拷贝,就是用映射类型,定义映射工具,只能用 type 不能用 interface
-
   ```ts
   // 用type定义映射工具,映射工具类似函数
   type MapPerson<Type> = {
@@ -1604,7 +2189,6 @@ export {};
 
   export {};
   ```
-
 ### 映射-修饰符使用
 
 - ==选择性拷贝,可选类型?==
@@ -1639,7 +2223,257 @@ export {};
   // 新的属性中readonly和?都没了
   type RequiredIperson = MapRequiredIperson<IPerson>;
   ```
+### 条件类型
+- 日常开发中我们需要基于输入的值来决定输出的值，同样我们也需要基于==输入的值的类型来决定输出的值的类型==
+- ==条件类型==（Conditional types）就是用来帮助我们描述输入类型和输出类型之间的关系: ==SomeType extends OtherType ? TrueType : FalseType==
+- ==**条件类型中的 extends	T extends U	验证类型兼容性，判断 T 能否赋值给 U**==
+  ```ts
+    type IDType = number | string
 
-### 内置工具和类型体操 X
+    // 判断number是否继承(extends)自IDtype
+    // 条件类型类似于js的三元运算符
+    type ResType = number extends IDType? true : false // true, number可以赋值给IDType,它是联合类型,可以表示number类型
+    type ResType2 = boolean extends IDType? true : false // false, 同理
+  ```
+- ==举例: 应用==
+  ```ts
+    // 应用: 函数的重载
+    function sum(num1: number, num2: number):number
+    function sum(num1: string, num2: string):string
+    function sum(num1,num2){
+      return num1 + num2
+    }
 
-- 2:57:00
+    // 改进,用条件类型确定返回值的类型
+    function sum2<T extends number | string>(num1:T,num2:T):T extends number ? number:string
+    function sum2(num1,num2){
+      return num1 + num2
+    }
+    // 可以确定返回值的类型
+    const res = sum2(10,20)
+    const res2 = sum2('hello',' world')
+  ```
+### ReturnType(*)
+- ==在项目中会用到,理解一下, 内置工具 ReturnType: 根据函数类型自动获取函数的返回值类型 ==
+  ```ts
+    // 内置工具 ReturnType: 根据函数类型自动获取函数的返回值类型 
+    type CalcFn = (num1: number,num2:number) => number
+
+    function foo (){
+      return '你好世界'
+    }
+
+    type CalcFnReturnType = ReturnType<CalcFn> // number
+    // foo是实例,先转为类型再放入ReturnType
+    type FooFnReturnType = ReturnType<typeof foo> // string
+  ```
+### 条件类型中的类型推断
+- 类型体操的题目,业务中基本不用
+- ==条件类型提供了infer 关键词，可以从正在比较的类型中推断类型，然后在true 分支里引用该推断结果==
+```ts
+  // 类型体操: 自己封装一个ReturnType方法 MyReturnType
+  // 条件类型提供了infer 关键词，可以从正在比较的类型中推断类型，然后在true 分支里引用该推断结果
+
+  // T限制传入的类型为函数
+  // 推断函数返回值类型: 条件类型+infer(关键字)推断,infer可以推断出返回值类型,命名为R
+  type MyReturnType<T extends (...args: any[]) => any> = T extends (...args: any[]) => infer R ? R : never
+  type CalcFnReturnType2 = MyReturnType<CalcFn> // number
+  // 同理可以推断参数的类型(也有内置工具),命名为A
+  type MyParameterType<T extends (...args: any[]) => any> = T extends (...args: infer A) => any ? A : never
+  type CalcFnReturnType3 = MyParameterType<CalcFn> // [num1: number, num2: number]
+```
+### 分发条件类型
+- 类型体操题目: ==当在泛型中使用条件类型的时候，如果传入一个联合类型，就会变成分发的（distributive）==
+  ```ts
+    type toArray<T> = T extends any ? T[] : never
+
+    // 要string[] | number[] 而不是 (string | number)[] 
+    // number[] | string[]	只能是 number 或者 string 单一类型
+    // (number | string)[]	每个元素可以是 number 或者 string
+    type newType = toArray<string | number> // string[] | number[]
+  ```
+- 如果我们在ToArray传入一个联合类型，这个条件类型会被应用到联合类型的每个成员：
+  - 当传入string | number时，会遍历联合类型中的每一个成员；
+  - 相当于ToArray<string> | ToArray<number>；
+  - 所以最后的结果是：string[] | number[]
+### Partial<Type>
+- ==用于构造一个Type下面的所有属性都设置为可选的类型==
+  ```ts
+    interface IKun{
+      name:string
+      age: number
+      slogan?:string
+    }
+
+    // 把IKun的所有类型都变为可选
+    type IKunOptional = Partial<IKun>
+
+    // 类型体操: 如何实现的 MyPartial
+    type MyPartial<T> = {
+      // 映射类型
+      [P in keyof T] ?: T[P] 
+    }
+  ```
+### Required<Type>
+- ==用于构造一个Type下面的所有属性全都设置为必填的类型，这个工具类型跟Partial相反==
+  ```ts
+    interface IKun{
+      name:string
+      age: number
+      slogan?:string
+    }
+
+    // 把IKun的所有类型都变为必选
+    type IKunRequired = Required<IKun>
+
+    // 类型体操: 如何实现的 MyRequired
+    type MyRequired<T> = {
+      // 映射类型 + 修饰符
+      [P in keyof T] -?: T[P] 
+    }
+  ```
+### Readonly<Type>
+- ==用于构造一个Type下面的所有属性全都设置为只读的类型，意味着这个类型的所有的属性全都不可以重新赋值==
+  ```ts
+    interface IKun{
+      name:string
+      age: number
+      slogan?:string
+    }
+
+    // 把IKun的所有类型都变为必选
+    type IKunReadonly = Readonly<IKun>
+
+    // 类型体操: 如何实现的 MyRequired
+    type MyReadonly<T> = {
+      // 映射类型 + 修饰符
+      readonly [P in keyof T] : T[P] 
+    }
+  ```
+### Record
+- ==用于构造一个对象类型，它所有的key(键)都是Keys类型，它所有的value(值)都是Type类型==
+  ```ts
+    interface IKun{
+      name:string
+      age: number
+      slogan?:string
+    }
+
+    type t1 = '上海' | '北京' | '洛杉矶'
+    type IKuns = Record<t1,IKun>
+    // IKuns的类型如下,给t1的每个值赋值Ikun类型
+    // type IKuns = {
+    //     上海: IKun;
+    //     北京: IKun;
+    //     洛杉矶: IKun;
+    // }
+
+    const ikuns: IKuns = {
+      '上海':{
+        name: 'xxx',
+        age: 12
+      },
+      '北京':{
+        name: 'yyy',
+        age: 22
+      },
+      '洛杉矶':{
+        name:'zzz',
+        age:15
+      }
+    }
+
+    // 类型体操: MyRecord
+    // 确保Keys是一个联合类型
+    type MyRecord<Keys extends keyof any,T> = {
+      [P in Keys]: T
+    }
+  ```
+### Pick
+- ==用于构造一个类型，它是从Type类型里面挑了一些属性Keys==
+  ```ts
+    interface IKun{
+      name:string
+      age: number
+      slogan?:string
+    }
+
+    type IKunPick = Pick<IKun,'slogan'|'name'>
+    // 选中了一部分属性
+    // type IKunPick = {
+    //     slogan?: string | undefined;
+    //     name: string;
+    // }
+
+    // 类型体操
+    // K类型必须是T里面有的类型
+    type MyPick<T,K extends keyof T> = {
+      [P in K]: T[P]
+    }
+  ```
+### Omit
+- ==用于构造一个类型，它是从Type类型里面过滤了一些属性Keys==
+  ```ts
+    interface IKun{
+      name:string
+      age: number
+      slogan?:string
+    }
+
+    type IKunOmit = Omit<IKun,'slogan'|'name'>
+    // 过滤了一部分属性
+    // type IKunOmit = {
+    //     age: number;
+    // }
+
+    // 类型体操
+    // K类型必须是T里面有的类型
+    type MyOmit<T,K extends keyof T> = {
+      // T断言类型后面的意思是P只有不在K里面的值才会返回,在K里面的值直接返回never,相当于过滤
+      [P in keyof T as P extends K ? never: P]: T[P]
+    }
+  ```
+### Exclude
+- ==用于构造一个类型，它是从UnionType联合类型里面排除了所有可以赋给ExcludedMembers的类型==
+  ```ts
+    type IKun = "dance" | "sing" | "rap"
+
+    // 把联合类型中的一些属性排除出去
+    type IKuns = Exclude<IKun,"sing">  // type IKuns = "dance" | "rap"
+
+    // 类型体操
+    type MyExclude<T,E> = T extends E ? never : T
+    type IKuns2 = MyExclude<IKun,"sing">
+  ```
+### Extract
+- ==用于构造一个类型，它是从Type类型里面提取了所有可以赋给Union的类型==
+  ```ts
+    type IKun = "dance" | "sing" | "rap"
+
+    // 把联合类型中的一些属性选择出来
+    type IKuns = Extract<IKun,"sing">  // type IKuns = "sing"
+
+    // 类型体操
+    type MyExtract<T,E> = T extends E ? T : never
+    type IKuns2 = MyExtract<IKun,"sing">
+  ```
+### NonNullable<Type>
+- ==用于构造一个类型，这个类型从Type中排除了所有的null、undefined的类型==
+  ```ts
+    type IKun = "sing" | "dance" | undefined | null;
+
+    type Ikuns = NonNullable<IKun>
+    // 当T是null或undefined时候,返回never
+    type MyNonNullable<T> = T extends null|undefined ? never : T
+  ```
+### InstanceType
+- ==用于构造一个由所有Type的构造函数的实例类型组成的类型==
+  ```ts
+    class Person{}
+    const p1:Person = new Person()
+
+    // typeof Person: 构造函数的类型
+    // InstanceType: 构造函数构造出的实例对象的类型
+    type HYPerson = InstanceType<typeof Person>
+    const p2:HYPerson = new Person()
+  ```
