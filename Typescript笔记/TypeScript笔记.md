@@ -737,8 +737,81 @@
     sum(10, 20); // V
     sum(10); // X
     ```
+### 函数签名
 
-### 调用签名
+- ==**函数签名**==: 定义一个函数从输入参数到返回值的类型,使用这个定义的函数将按照定义进行类型检测;
+  ```ts
+    // 定义一个函数的参数类型,返回值类型
+    // 格式为 (参数1: 类型1 , 参数2: 类型2 , ...): 返回值类型
+    interface IFnTest {
+      (name: string, age: number): void
+    }
+    // Fn1遵循函数签名IFnTest的定义
+    const Fn1: IFnTest = function (name, age) {
+      console.log(name, age)
+    }
+    // 调用Fn1函数,必须按照IFnTest的类型定义使用
+    Fn1("cdy", 20)
+  ```
+- ==更进一步地,参数本身可以是一个函数类型==
+  ```ts
+    // 参数1换为函数,参数2不变,返回值变为number类型
+    interface IFnTest {
+      (fn: (state: number) => string, age: number): number
+    }
+    // 应用新的函数签名,参数1fn是一个函数,有它的类型限制,参数2不变,返回值应为number类型,所以返回一个数字1000
+    const Fn2: IFnTest = function (fn, age) {
+      return 1000
+    }
+
+    // 调用Fn2后,遵循函数签名,第一个参数为箭头函数,aaa类型为number,返回值为字符串,符合签名定义,参数2为数字100
+    // 而承接返回值的res的类型为number
+    const res = Fn2((aaa) => {
+      return "哈哈哈"
+    }, 100)
+  ```
+- ==最后,函数签名定义支持泛型,可以选择传递类型,也可以不传递(类型推断)==
+  ```ts
+    // 泛型是在调用函数时传入的
+    interface IFnTest {
+      <T>(fn: (state: T) => string, age: number): T
+    }
+
+    const Fn2: IFnTest = function (fn, age) {
+      return 1000
+    }
+    // 调用函数后,传入泛型,此时参数1(fn)的形参aaa根据泛型推导类型为布尔,同理Fn2函数的返回值也为布尔类型,即res类型为布尔类型
+    const res = Fn2<boolean>((aaa) => {
+      return "哈哈哈"
+    }, 100)
+  ```
+- 类型推导: ==不同的泛型位置推导结果不同==
+  ```ts
+    // 如果是类型推导,从参数一开始遇到第一个T开始推导,推导出来的类型会应用于后面的T
+    // 推导 state: T, 对应Fn2的参数1的形参aaa
+    interface IFnTest {
+      <T>(fn: (state: T) => string, age: number): T
+    }
+
+    // aaa类型为unknown,所以res类型也为unknown
+    const res = Fn2((aaa) => {
+      return "哈哈哈"
+    }, 100)
+
+    // ++++++++++++++++++++++++++++++++++++
+
+    // 推导 参数1的返回值
+    interface IFnTest {
+      <T>(fn: (state: number) => T, age: number): T
+    }
+
+    // 参数1的返回值类型为string,所以res类型也为string
+    const res = Fn2((aaa) => {
+      return "哈哈哈"
+    }, 100)
+  ```
+
+### 调用签名(了解)
 
 - 调用签名(Call Signaltures): 把函数当作对象使用时,给函数提供调用函数的功能,==函数作为对象可以有自己的属性,函数类型表达式有局限性,只能体现函数的方面,不能体现函数作为对象的方面==
 
