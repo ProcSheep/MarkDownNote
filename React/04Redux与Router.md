@@ -916,7 +916,7 @@
       const res = await axios.get('http://123.207.32.32:8000/home/multidata')
 
       // 必须返回res.data,axios返回值的res中某些东西做不了序列化,会报错
-      // return res
+      // return res X  (当然如果你的axios做过封装,自动.data了,就不必这样了)
       return res.data
     })
   ```
@@ -935,8 +935,8 @@
       },
       // 异步派发数据,新版本已统一更新为builder方法,codewhy老师课中的方法已经被弃用
       extraReducers: (builder) => {
-        // 参数为state和action,由于redux不可变数据结构,所以state打印不出什么东西,
-        // action还是type,payload,重要数据存储在payload内部
+        // 参数为state和action,由于redux不可变数据结构,所以state打印不出什么东西,仅需知道state可以获取到这个Slice内的initialState即可
+        // action还是type,payload,重要数据存储在payload内部,payload的数据就是createAsyncThunk返回的(return)的数据
 
         // 3个状态 pending fulfilled rejected, 可以连缀写法 .addCase().addCase()
 
@@ -1015,10 +1015,11 @@
 - coderwhy老师提供 网络请求函数getHomeGoodPriceData和getHomeHighscoreData已经封装封装,只需知道它会返回请求好的promise对象 (同时`res.data`已经在axios封装处拦截处理了,所以不用`res.data`)
   ```js
       /** 多个异步请求,不建议堆叠await,阻塞进程; 同时不建议写多个createAsyncThunk,维护困难
+      *   第一个payload接受参数,当调用fetchHomeDataAction函数时,传递形参就会由parload参数记录
       *   还有第二个参数,action -> {getState,dispatch}
       *   getState可以获取initialState所有的状态,可以获取state使用,但是如果要修改state,必须通过action函数,不可以直接赋值修改!
       */
-      export const fetchHomeDataAction = createAsyncThunk('fetchHomeData', async (payload, {dispatch}) => {
+      export const fetchHomeDataAction = createAsyncThunk('fetchHomeData',(payload, {dispatch}) => {
         getHomeGoodPriceData().then(res => {
           dispatch(changeGoodPriceInfoAction(res)) // 通过action修改state的值
         })
@@ -1050,6 +1051,7 @@
       export default homeSlice.reducer
     ```
     > 不再通过extraReducers处理异步数据赋值state,而是转用reducers处理
+    > ==注意: 如果网络请求都需要传递参数,不建议合并createAsyncThunk,这样传递的参数都集中到payload一个参数内部更加混乱==
 ### RTK多个异步请求(了解)
 - 豆包提供,有需自取
   ```js

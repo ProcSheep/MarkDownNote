@@ -26,3 +26,5 @@
 - 兼容包下载: `npm install @ant-design/v5-patch-for-react-19 --save`
 - 项目入口main.js引入 `import '@ant-design/v5-patch-for-react-19';`
 - ==目前下来,可以根据要用的组件库单独引入使用即可,复制文档的引入==
+- 可能会用到的包: `npm i antd-style` (关于antd的样式)
+- 如果使用图标: `npm install @ant-design/icons@5.x --save`
