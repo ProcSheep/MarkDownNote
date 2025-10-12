@@ -1,4 +1,5 @@
 # Git
+- 练习git的学习网站: https://learngitbranching.js.org/
 ## 特性和工作流程
 - ==**Git: 是一个开源的分布式版本控制系统，用于敏捷高效地处理任何或小或大的项目,国内的gitee和国外的github都是基于git的代码托管平台,使用git可以把本地的代码存储到他们的服务器中托管,实现共享和备份**==
 - Git 的特性
@@ -125,13 +126,14 @@
   - ==SSH==: 需要配置,配置后不需要重复输入账号和密码
   > http太麻烦了,直接学习ssh
 - ==SSH key==
-  - 作用: 实现本地仓库和github之间免登录的加密数据传输
+  - 作用: 实现本地仓库和github之间免登录的非对称加密数据传输
   - 组成: id_rsa(私钥,本地电脑) id_rsa.pub(公钥,github)
 - ==生成SSH key==
   - 打开 git bush
   - `ssh-keygen -t rsa -C "你的github邮箱"`
   - `ssh-keygen -t rsa -C "3132519428@qq.com"`
-  - 连续敲击3次回车,即可在`C:\Users\用户名\.ssh`生成两个文件id_rsa,id_rsa.pub
+  - 连续敲击3次回车,即可在`C:\Users\用户名\.ssh`生成两个文件id_rsa(私钥存自己电脑里),id_rsa.pub(公钥给github托管服务器)
+  > ==注意: 公钥与私钥是成对,通过这种方式github服务器可以不通过输入密码来确定这是你的电脑,但是相对的,如果你换了别的电脑,比如公司的电脑,这个电脑是没有对应的私钥的,所以如果想要使用ssh,需要额外再生成一对公钥私钥,然后在github上配置一次,一个电脑对应一个私钥,公钥全部存在GitHub中即可== 
 - ==Github远程库ssh配置==
   - 记事本打开 id_rsa.pub,复制内容
   - 设置settings里面的 SSH and GPG keys,创建一个新的ssh key
@@ -150,7 +152,8 @@
 - ==关于远程仓库origin==
   - 在本地创建的每一个git库,链接远程库都需要起一个远程库的名字,可以通过`git remote -v`来查看此git库中的远程库链接名字,设置远程库时不可以重名,不过不同的git库之间远程库名字不冲突,只有同一个git库中设置2个相同的远程库名字时才会冲突,所以一般默认为origin,如果你的一个git库既要托管github又要托管gitee等多个代码平台,配置远程库名字时要区分,当然你也可以复制出2份相同的文件夹,分别创建各自的git库,这样就不会冲突了,删除远程库的指令可以自己查
 - ==**2.克隆github仓库到本地**==
-- `git clone url`: 克隆别人的项目,url是别人仓库的地址,建议SSH地址
+  - `git clone url`: 克隆别人的项目,url是别人仓库的地址,建议SSH地址
+  - 直接使用vscode自带的快捷方式克隆项目: 比如新建一个窗口,然后选择左侧源代码管理,选择克隆一个仓库到本地,因为vscode克隆默认是http模式,所以设置过ssh后,需要到对应的github中把ssh的连接复制过来,然后黏贴到搜索栏进行远程仓库获取(ssh模式)
 - ==**3.tag标签**==
 - ==1.tag作用==
   - 用于标识版本号,给某些重要的提交节点上标签,可以回退,识别或下载这些节点的文件
@@ -219,3 +222,39 @@
   [![pEtV3C9.jpg](https://s21.ax1x.com/2025/03/07/pEtV3C9.jpg)](https://imgse.com/i/pEtV3C9)
 
 <!-- # Gitee -->
+# 常用命令(面试,待)
+- 1.基础配置与初始化
+  - 初始配置（首次使用必做）
+    ```bash
+      # 配置用户名和邮箱（关联远程仓库提交记录）
+      git config --global user.name "Your Name"
+      git config --global user.email "your@email.com"
+
+      # 查看配置信息
+      git config --list
+    ```
+  - 初始化仓库
+    ```bash
+      # 在现有项目中初始化 Git 仓库
+      git init
+
+      # 克隆远程仓库到本地
+      # 例如：git clone https://github.com/username/repo.git
+      git clone <远程仓库地址>  
+    ```
+- 2.团队协作
+  - 关联与查看远程仓库
+    ```bash
+      git remote  # 查看远程仓库别名（默认通常是origin）
+      git remote add origin <远程地址>  # 关联远程仓库
+    ```
+  - 拉取(pull)与推送(push)代码
+    ```bash
+      # 拉取远程分支最新代码（合并到当前分支，常用：git pull = git fetch + git merge）
+      git pull origin <远程分支名>  # 例如：git pull origin main
+
+      # 推送本地分支到远程（首次推送需指定关联关系）
+      git push -u origin <本地分支名>  # -u 表示后续可直接用 git push
+      git push origin <本地分支名>     # 非首次推送
+
+    ```
