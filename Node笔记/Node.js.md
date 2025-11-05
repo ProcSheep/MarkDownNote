@@ -112,6 +112,7 @@
   -  就是改完代码就会实时启动nodejs,不用和之前一样重启服务器, 打开方式 `nodemon + 空格 + 文件名`
    
 ## fs与Buffer
+- 文件的操作，比如读写，删除，改名等，均是异步的，fs也提供了对应Sync方法
 ### fs读写文件
 - 主要功能: ==读取==文件内容和==修改==内容,分为==异步与同步,同步完不成会阻塞后面js代码的执行,异步不会阻塞,读取完成执行回调函数==,需要**提前获取**
 - 1.**获取**: `let fs = require("fs")`
@@ -229,12 +230,18 @@
 
     readDirectory("../../codewhy_node")
   ```
-
+- ==参数==`withFileTypes`
+  - 为true： 返回fs.Dirent对象数组，内含文件更加详细的信息（比如文件/目录/符号连接（快捷方式）的类型）
+  - 为false： 仅返回文件/子目录的字符串名称， 例如`[index.js, utils]`
+- ==fs.Dirent 对象的常用方法（核心价值）==
+  - dirent.isFile()：是否是文件（返回布尔值）
+  - dirent.isDirectory()：是否是目录（返回布尔值）
+  - dirent.isSymbolicLink()：是否是符号链接（快捷方式）
 ### 创建与读写 (补)
 - 中游文件夹的自动创建
   ```js
     /** 问题1&2
-     * 文件夹的创建(默认中间路径不自动创建), 但是文件可以
+     * 文件夹的创建(默认中间路径不自动创建), 文件可以顺带创建
      * 文件夹路径的获取
     */
     const fPath = path.resolve(__dirname, './config/testData/student.txt')
@@ -363,8 +370,9 @@
     }
   ```
 
-### fs-重命名(了解)
+### rename(Sync)待
 - ==rename: 重命名文件夹或文件的名字==
+- ==异步操作，但不阻塞代码`fs.rename(oldPath,newPath,callback)`==，第三个参数 callback 是必填回调函数，操作完成后触发，接收一个 err 参数（成功时 err 为 null，失败时为错误对象）
   ```js
     fs.rename("./newFileTest","./newFile2", err=>{
       if(err){
@@ -380,7 +388,43 @@
       console.log("修改成功")
     })
   ``` 
-  
+- 新版本支持： ==更推荐的用法：Promise 式==
+- 语法： `await fs.promises.rename(oldPath, newPath)`
+> 
+- `fs.renameSync(oldPath, newPath)` 是 Node.js fs 模块提供的同步版文件 / 目录重命名 / 移动方法，核心作用是修改文件或目录的路径（==包括 “重命名” 和 “移动位置” 两种场景==），且操作会阻塞当前代码执行
+- 场景 1：仅重命名（不改变所在目录），保持文件 / 目录在原文件夹，只修改名称
+  ```js
+    // 1. 文件重命名：将 ./test.txt 改成 ./demo.txt
+    fs.renameSync('./test.txt', './demo.txt');
+  ```
+- 场景 2：移动位置（可同时重命名）
+  ```js
+    // 1. 仅移动：将 ./src/file.js 移动到 ./dist 目录（名称不变）
+    fs.renameSync('./src/file.js', './dist/file.js');
+    // 2. 移动+重命名：将 ./src/data.json 移动到 ./dist 并改名为 result.json
+    fs.renameSync('./src/data.json', './dist/result.json');
+    // 3. 目录移动：将 ./temp 目录移动到 ./archive 并改名为 2025_temp
+    fs.renameSync('./temp', './archive/2025_temp');
+  ```
+- ==1.覆盖风险：目标路径已存在时的行为==
+  - 如果 newPath 指向一个==已存在的文件：会直接覆盖该文件==（无提示，慎用！）；
+  - 如果 newPath 指向一个==已存在的目录：会抛出错误==（Error: EEXIST: file already exists），不能用文件覆盖目录。
+    ```js
+      const fs = require('fs');
+      const oldPath = './test.txt';
+      const newPath = './demo.txt';
+
+      // 若目标文件已存在，先删除（或做其他处理）
+      if (fs.existsSync(newPath)) {
+        fs.unlinkSync(newPath); // 删除已存在的目标文件
+      }
+      fs.renameSync(oldPath, newPath);
+    ```
+- ==2.权限与路径有效性==
+  - 若 oldPath 不存在：抛出 Error: ENOENT: no such file or directory；
+  - 若当前进程没有 oldPath 的读取权限或 newPath 所在目录的写入权限：抛出权限错误（Error: EACCES）；
+- ==3.符号链接（软链接,快捷方式）的处理==
+  - 如果 oldPath 是符号链接：方法会修改符号链接本身的路径，而不是链接指向的目标文件 `/` 目录。
 ### 文件描述符fd(了解)
 - nodejs中给每一个文件配置一个文件描述符(数字),文件描述符fd可以代替fs文件读写内容的相对路径,不过主要用于读取文件信息,记得打开文件后,最后要关闭它
   ```js
