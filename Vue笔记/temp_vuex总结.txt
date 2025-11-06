@@ -1,0 +1,150 @@
+Vue2
+
+1.属性
+data(){
+  return {
+    xxx
+  }
+}
+
+2.函数
+method: {
+    func(){
+      // 不要写箭头函数，this指向data参数
+      this.xxx ----> data(){}
+    }
+}
+
+计算属性computed(不可传参)
+computed: {
+  // 书写格式形同函数,但是使用时不可以带括号
+  Func(){
+      ........
+      return ...
+  }
+}
+
+
+3.v-model
+4. :info="js"
+5. @click=func
+
+v-if v-for  + templete
+v-for + key vue更新数据重点，可以更快速的处理数据，尤其插入数据
+
+
+
+===================== vuex =======================
+1.定义vuex
+store = createStore({
+  state(){
+    return {
+      属性
+    }
+  }
+})
+全局注册vuex main.js
+app.use(store)
+
+2.获取属性值
+全局vue通过 $store.xxx
+全局js通过 this.$store.xxx （不要修改，状态管理会混乱）
+
+3.mutations: {
+  // state必须有，payload是传参（可选）
+  func(state, payload){
+    state.isTabbar = true // 修改state内部的值
+  }
+}
+
+外部要修改，通过commit提交
+this.$store.commit("func", 参数)
+
+
+为了更好管理维护mutation的函数名
+会把名字统一管理，然后引用
+const APP = "app"
+[APP](state,payload){
+  ......
+}
+
+const app = {
+  appInfo: "appInfo",
+  appUser: "appUser"
+}
+
+[app.appUser](state,payload){
+  ....
+}
+
+4.mutations只能处理同步函数，
+Actions可以处理异步函数
+
+actions:{
+  async func(store,payload){
+    // store就是这个vuex实例，，异步操作后，还是通过同步行为mutation派发函数
+    // action无法直接修改state的值，需要通过mutation中转
+    // pinia同步异步统一action管理 也不要派发，简单多了
+  }
+}
+
+同时派发api是dispatch
+this.$store.dispatch(func, payload)
+
+
+5. getters类似于store中的计算属性 
+不允许传参，所以嵌套写个双返回return，同时传递参数
+filterCinemaList(state) { 
+    // 把箭头函数返回出去，外部调用箭头函数的时候传参
+    return (type) => {
+        return state.cinemaList.filter(item => item.eTicketFlag === type )
+    }
+}
+
+// 调用
+this.$store.getters.filterCinemaList
+
+
+6.语法糖， 通过mapStates(Mutations Actions Getters)
+写上对应函数或属性名字可以实现效果： “把属性或函数从store定义中获取过来，这样无论是获取store中数据（不需要this.$store ），还是派发this.$store.commit/dispatch， 都不需要了，直接当作本文件内部有这个函数即可， this.xxx直接调用并传参
+
+7.modules 模块化
+
+每个模块都有自己的state action mutation getters 
+可以每个模块处理不同的业务，最后统一在store注册
+  const store = createStore({
+      // 使用模块
+      modules:{
+          TabbarModule,
+          CinemaModule
+      }
+  })
+  
+注意： 此后如果没有辅助函数map语法糖，获取state属性 this.$store.[moduleName].xxxx 在那个module中就用那个moduleName
+但是派发commit dispatch不需要， 因为这两个方法就是挂在到vuex实例上的，和新创建的module没有关系
+
+module内部如何写
+
+
+  import { CHANGE_TABBAR } from '../type.js' // type.js的路径改改
+  // 作为一个对象,之后导出去
+  const TabbarModule = {
+      // 开启命名空间: 正常使用辅助函数的必要
+      namespaced: true,
+      state() {
+          return {
+              isTabbarShow: true,
+          }
+      },
+      mutations: {
+          [CHANGE_TABBAR](state, paylood) {
+              state.isTabbarShow = paylood
+          },
+      }
+  }
+
+  export default TabbarModule
+
+  》 一定要记得，要想使用辅助函数语法糖， 这个模块必须开启命名空间
+
+

@@ -344,8 +344,8 @@
   ```
     > 我们在store文件夹内创建新的文件夹module,在内部放入2个子模块TabbarModule.js和CinemaModule.js,内部分别管理Tabbar和Cinema各自的store内容,之后引入,放在一起,看注释代码即可
 - ==这么单独截取模块化后会出现问题,代码在this的过程中会多嵌套一层模块的名字==,比如
-  - **如果我们不用mapXX语法糖**,==正常访问isTabbarShow状态由`this.$store.state.isTabbarShow`变为`this.$store.state.TabbarModule.isTabbarShow`==,这个是无法改变的,只能这么写
-  - 但是我们使用的提交方案: 例如 向mutation提交的`this.$store.commit("changeTabbar", false)`和 向action提交的`this.$store.dispatch("getCinemaList", "参数演示)`==**不会受影响,正常运行**==
+  - **如果我们不用mapXX语法糖**,==正常访问isTabbarShow状态(state)由`this.$store.state.isTabbarShow`变为`this.$store.state.TabbarModule.isTabbarShow`==,这个是无法改变的,只能这么写
+  - 但是我们使用的提交方案: 例如 向mutation提交的`this.$store.commit("changeTabbar", false)`和 向action提交的`this.$store.dispatch("getCinemaList", "参数演示)`==**不会受影响,正常运行,因为派发方法commit dispatch就是挂在到vuex实例上的，和新创建的module没有关系**==
   - ==**如果我们用了mapXX语法糖**==,所有语法糖失灵,因为语法糖是去index.js文件中去寻找相关内容,现在已经打包给子组件了,它找不到,就需要新的知识,==命名空间namespaced,在子模块打开这个属性,true==
 - ==**注意:下面的2个子模块内是对象的配置,并不需要createStore({...})**==
 - TabbarModule.js
