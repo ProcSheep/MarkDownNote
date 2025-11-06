@@ -331,6 +331,7 @@
   ```
 - ==**聚合函数与group by的结合**==
   - 聚合函数的功能是对一组数据进行计算，进而返回单一的值。像 SUM、AVG、COUNT、MAX、MIN 以及 JSON_ARRAYAGG 等,都属于聚合函数。
+  - JSON_ARRAYAGG可以按照分组把字段数据整合为JSON数据
   - GROUP BY 子句会把查询结果按照指定的列进行分组，每个组内的数据会被视为一个整体，聚合函数会对每个组分别进行计算。
   - ==若不使用 GROUP BY 子句，数据库就不清楚该对哪些行进行聚合操作。因为聚合函数要求对一组行进行计算，要是没有明确分组，数据库就无法决定如何处理数据。所以，在使用聚合函数时，必须明确指定 GROUP BY 子句，告知数据库按照哪些列进行分组。==
   - ==数据库运行时会先进行group by分组,然后再对分组后的数据进行聚合运算==
@@ -472,17 +473,17 @@
     -- 1多对多的关系
     -- 1.1 创建学生表
     CREATE TABLE IF NOT EXISTS `students`(
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(20) NOT NULL,
-    age INT
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      name VARCHAR(20) NOT NULL,
+      age INT
     );
 
 
     -- 1.2 创建课程表
     CREATE TABLE IF NOT EXISTS `courses`(
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(20) NOT NULL,
-    price DOUBLE NOT NULL
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      name VARCHAR(20) NOT NULL,
+      price DOUBLE NOT NULL
     );
 
     -- 1.3 为学生表和课程表插入数据
@@ -500,12 +501,13 @@
     
     -- 1.4 创建学生选课的关系表
     CREATE TABLE IF NOT EXISTS `students_select_courses`(
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    student_id INT NOT NULL,
-    course_id INT NOT NULL,
-    --  外键约束: 学生id和课程id要受学生表和课程表的约束! 并设置更新删除值
-    FOREIGN KEY (student_id) REFERENCES students(id) ON UPDATE CASCADE ON DELETE CASCADE,
-    FOREIGN KEY (course_id) REFERENCES courses(id) ON UPDATE CASCADE ON DELETE CASCADE
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      student_id INT NOT NULL,
+      course_id INT NOT NULL,
+      --  外键约束: 学生id和课程id要受学生表和课程表的约束!
+      --  UPDATE CASCADE和DELETE CASCADE保证了关系表的数据可以跟随主表变化(更新/删除),保证数据的一致性
+      FOREIGN KEY (student_id) REFERENCES students(id) ON UPDATE CASCADE ON DELETE CASCADE,
+      FOREIGN KEY (course_id) REFERENCES courses(id) ON UPDATE CASCADE ON DELETE CASCADE
     );
     
       -- 1.5 学生选择课程

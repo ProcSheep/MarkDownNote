@@ -240,3 +240,107 @@
   - 1.生命周期:
     - 小程序的生命周期是页面方面,更简单
     - .... 待定,kerwin有微信小程序的课(21年的了很旧了,还是先看Plus的吧)
+## 面经填充
+### vue2 与 vue3 的底层
+Vue2 和 Vue3 在响应式系统底层实现上有本质区别，分别基于 `Object.defineProperty` 和 `Proxy`，这直接导致了两者在功能和性能上的差异：
+
+-  **1. 底层语法的核心区别**
+- **Vue2：基于 `Object.defineProperty`**
+通过遍历对象的**已有属性**，使用 `Object.defineProperty` 为每个属性添加 `getter` 和 `setter`，实现响应式监听：
+```javascript
+// Vue2 响应式核心原理简化
+function defineReactive(obj, key, value) {
+  // 递归处理深层对象
+  observe(value);
+  
+  Object.defineProperty(obj, key, {
+    get() {
+      // 依赖收集
+      track(obj, key);
+      return value;
+    },
+    set(newVal) {
+      if (newVal !== value) {
+        value = newVal;
+        // 递归处理新值（如果是对象）
+        observe(newVal);
+        // 触发更新
+        trigger(obj, key);
+      }
+    }
+  });
+}
+```
+
+- **Vue3：基于 `Proxy`**
+通过 `Proxy` 直接代理**整个对象**，拦截对象的所有操作（包括属性的增删改查）：
+```javascript
+// Vue3 响应式核心原理简化
+function reactive(obj) {
+  return new Proxy(obj, {
+    get(target, key, receiver) {
+      // 依赖收集
+      track(target, key);
+      // 递归代理（访问时才处理深层对象）
+      const value = Reflect.get(target, key, receiver);
+      if (isObject(value)) return reactive(value);
+      return value;
+    },
+    set(target, key, newVal, receiver) {
+      const oldVal = Reflect.get(target, key, receiver);
+      if (newVal !== oldVal) {
+        Reflect.set(target, key, newVal, receiver);
+        // 触发更新
+        trigger(target, key);
+      }
+    },
+    deleteProperty(target, key) {
+      // 拦截删除操作
+      const hadKey = hasOwn(target, key);
+      const result = Reflect.deleteProperty(target, key);
+      if (hadKey) {
+        // 触发更新
+        trigger(target, key, 'delete');
+      }
+      return result;
+    }
+  });
+}
+```
+
+
+- **2. Proxy 相对 `Object.defineProperty` 的优势**
+1. **原生支持监听对象整体，而非单个属性**  
+   - `Object.defineProperty` 需要遍历对象的**已有属性**才能监听，无法直接监听对象本身。  
+   - `Proxy` 直接代理整个对象，无需提前遍历，更简洁高效。
+
+2. **支持动态新增/删除属性的监听**  
+   - `Object.defineProperty` 只能监听初始化时存在的属性，新增属性需要手动调用 `Vue.set` 才能响应式；删除属性需要 `Vue.delete`。  
+   - `Proxy` 的 `set` 和 `deleteProperty` 拦截器可以直接监听属性的新增和删除，无需额外 API。
+
+3. **支持监听数组的所有操作**  
+   - Vue2 中为了监听数组，需要重写 `push`、`pop` 等数组方法（通过原型链拦截），存在局限性（如通过索引修改数组元素无法监听）。  
+   - `Proxy` 可以直接拦截数组的所有操作（包括索引修改、长度变化等），无需特殊处理。
+
+4. **惰性代理，性能更优**  
+   - `Object.defineProperty` 在初始化时就会递归处理所有深层属性，对于复杂对象可能导致启动性能问题。  
+   - `Proxy` 是“访问时才递归代理深层对象”（懒加载），初始化时性能更好，尤其适合大型对象。
+
+5. **支持更多拦截操作**  
+   - `Proxy` 可以拦截 `in` 运算符、`delete` 操作、函数调用等更多行为，而 `Object.defineProperty` 只能拦截属性的读写。
+
+
+- **总结**
+Vue3 用 `Proxy` 替代 `Object.defineProperty`，解决了 Vue2 响应式系统的诸多局限性（如动态属性、数组监听等），同时提升了初始化性能和扩展性。这是 Vue3 响应式系统更强大、更灵活的核心原因。
+
+### pinia相关
+- ==1.pinia与vuex的区别 ==
+  - 1.Pinia 废除了 Vuex 中的 mutations，直接通过 actions 处理同步和异步操作，简化代码
+  - 2.==Pinia 的 actions 如何处理异步操作？与 Vuex 的 actions 有何不同？== Pinia 支持组件外修改状态和调用函数（如 store.count++ / store.getNameById(001)），而 Vuex 需通过 commit/dispatch(需要额外提交),同理在actions异步函数内部也可以直接修改state内的属性值
+- ==2.Pinia 的 store 是响应式的吗？如何确保组件能响应 state 变化？==
+- 直接store.XX有响应式, 但是解构 store 时需使用 storeToRefs 保持响应式
+  ```js
+    import { storeToRefs } from 'pinia'
+    const store = useCounterStore()
+    const { count } = storeToRefs(store) // 解构后仍为响应式
+  ```
