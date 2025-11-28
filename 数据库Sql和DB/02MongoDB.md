@@ -82,6 +82,51 @@
 
 # MongoDB shell
 - ==MongoDB Shell 是 MongoDB 提供的官方交互式界面，允许用户与 MongoDB 数据库进行交互、执行命令和操作数据库==。MongoDB Shell 是基于 JavaScript 的，允许用户直接在命令行或者脚本中使用 JavaScript 语言来操作 MongoDB 数据库。
+## **注意(Node/shell)**
+- 下面的操作是mongodb shell中的操作符，所以是不用标明哪个数据库的，但是如果在node代码中进行操作，需要先连接数据库，再指明哪一个数据集合，常规的定义model
+- ==直接连接如下（没有设置model-Schema模型）==
+  ```js
+    // 直接地创建本地数据库连接
+    const mongoose = require('mongoose')
+    // 1.连接本地数据库的集合
+    const db = mongoose.createConnection('mongodb://localhost:27018/test')
+    // 2. 监听连接成功事件
+    db.on('connected', async () => {
+      try {
+        // 连接就绪后执行查询
+        const data = await db.collection('aireplaies').find().toArray()
+        console.log('查询结果：', data)
+      } catch (err) {
+        console.error('查询失败：', err)
+      }
+    })
+
+    // 3. 监听连接错误事件
+    db.on('error', (err) => {
+      console.error('数据库连接失败：', err)
+    })
+  ```
+- 也可以是这样   
+  ```js
+    // 直接地创建本地数据库连接
+    const mongoose = require('mongoose')
+    // 连接本地数据库的集合
+    const db = mongoose.createConnection('mongodb://localhost:27018/test')
+    // 3. 监听连接错误事件
+    db.on('error', (err) => {
+      console.error('数据库连接失败：', err)
+    })
+
+    // 指明对数据集合admin进行操作（数据库中全小写+复数为"admins"）
+    const data = await db.collection(admin).aggregate(pipeline).toArray();
+  ```
+- ==toArray() 方法==将聚合管道的结果转换为数组，方便后续处理。
+  - 没有toArray，node在数据库查询中返回的是一个 MongoDB 游标对象（Cursor），而不是直接的数据结果，游标是一种特殊的对象，它指向查询结果集，但并不立即包含所有数据
+  - ==MongoDB 使用游标的设计是为了高效处理大量数据，避免一次性将所有数据加载到内存==,游标允许按需获取数据，但在这个分页查询场景中，我们需要一次性获取当前页的所有数据
+  - toArray() 方法会遍历游标中的所有文档，并将它们转换为标准的 JavaScript 数组格式(数组的每一项就是查询的一条数据), 转换后的数组包含普通的 JavaScript 对象，这些对象可以直接在代码中使用（访问属性、进行操作等）
+  > 1.如果不使用 toArray()，直接使用游标对象，你将无法像操作普通数组那样使用查询结果，也无法获取总记录数等必要信息。所以虽然 MongoDB 返回的游标也包含数据，但为了在 Node.js 代码中更方便地操作这些数据，通常需要调用 toArray() 将其转换为标准 JavaScript 数组
+  > ==2.数据库集合可以显式去写，比如`replay -> replaies`,数据库无法`y->ies`,就需要直接写成`collection("replaies")`==
+
 ## 数据库与集合
 - ==基础指令(数据库与集合)==:
   - 1.连接数据库(先启动数据库) | cmd
@@ -349,12 +394,12 @@ mongosh --host <hostname> --port <port> -u "testuser" -p "password123" --authent
   - query：用于查找文档的查询条件。默认为 {}，即匹配所有文档。
   - projection（可选）：指定返回结果中包含或排除的字段。
 - 实例如下：
-  ···shell
+  ```shell
     db.studentInfo.find(
       { age: { $gt: 20 } },  
       { grade: 0, _id: 0 }  
     )
-  ···
+  ```
   > 第一个是查询条件，第二个指定不显示的属性（0），或者指定显示的属性（1）， 只能写一种（0或1），不写就全部显示
 - 2.findOne: 同理查询，但是只会返回查到符合条件的第一个结果
 - ==3.关系运算符(查询最常用)==
@@ -1362,12 +1407,103 @@ mongosh --host <hostname> --port <port> -u "testuser" -p "password123" --authent
   > 针对拆分后的数组单个数据进行sort操作，排序结束后重新组合回数组格式，整理输出格式输出
   > ==数组就像「打包好的一捆文件」，如果要对里面的「单个文件内容」进行操作（比如统计、排序），必须先把捆解开（`$`unwind），才能逐个处理==
   > ==如果想不明白拆分数组的格式以及如何对数组内数据进行操作可以先打印下unwind后的查询结果，然后继续思考下一步==
+- ==属性拓展：preserveNullAndEmptyArrays== 
+  ```js
+    {
+      $unwind: {
+        path: "$matchedConversations",
+        preserveNullAndEmptyArrays: true // 保留空/Null 数组的文档
+      }
+    }
+  ```
+- 不写默认为false，false情况下，unwind会默认过滤掉空值/null等
+  ```js
+    [
+      { _id: 1, matchedConversations: [{ id: "a" }, { id: "b" }] }, // 非空数组
+      { _id: 2, matchedConversations: [] }, // 空数组
+      { _id: 3, matchedConversations: null }, // 数组为 null
+      { _id: 4 } // 没有 matchedConversations 字段
+    ]
+  ```
+  ```js
+    { $unwind: "$matchedConversations" } // 等价于 preserveNullAndEmptyArrays: false
+  ```
+- 会自动过滤无效数据
+  ```js
+    [
+      { _id: 1, matchedConversations: { id: "a" } },
+      { _id: 1, matchedConversations: { id: "b" } }
+    ]
+  ```
+
 - ==拓展1：大体量数据操作（20w）==
   - 耗时的核心不是 `$`unwind 本身，而是以下两个关键问题：
       - 数据膨胀效应：如果每条文档的数组字段有 N 个元素，`$`unwind 后会生成「20 万 × N」条文档（比如 N=10，就变成 200 万条），后续聚合阶段（`$`group `$`sort）需要处理的数据量暴增；
       - 缺少索引支持：如果 `$`match 阶段没有筛选条件（或筛选条件无索引），会对全集合拆分数组，相当于 “遍历 20 万条文档 + 拆分 200 万条数据”
     > 核心： 1.合理的索引 + `$`match操作缩小要拆分的范围 2.避免不必要的拆分，只有必须要计算数组内数据时才可拆分
 - 拓展2: 查询中有skip/limit阶段操作，这里注，同理的skip与limit也无法对整个数组进行操作，所以要在拆分时进行操作，所以这2条语句就在第一次拆分unwind与第二次集合push之间
+## getField/literal
+- 获取属性中包含句点 (`.`) 或以美元符号 (`$`) 开头的字段的值
+  ``` js
+    {
+      $getField: {
+        field: <String>, // input对象中要查询的值
+        input: <Object> // 要查询的对象
+      }
+    }
+  ```
+- ==关键属性literal==: 不会对表达式进行求值，而是返回未解析的表达式, ==他不会管`$`的含义，只会单纯当作字符串处理==
+  ```
+    { $literal: { $add: [ 2, 3 ] } } ------> { "$add" : [ 2, 3 ] }
+  ```
+- ==演示,现在插入一条下面的数据==
+  ```js
+    db.inventory.insertMany([
+      { _id: 1, item: "sweatshirt",  "price.usd": 45.99,
+        quantity: { "$large": 50, "$medium": 50, "$small": 25 }
+      }
+    ])
+  ```
+- 首先quantity是正常的顶层属性，直接加`$`获取其值，其内部特殊属性的获取本身`$`开头，所以通过literal获取下属性
+  ```js
+    { $getField:
+      { field: { $literal: "$small" }, // 获取内部$small属性的值 25
+        input: "$quantity" // 进入quantity属性
+      }
+    },
+  ```
+- 支持嵌套，一步不够多写几步,例如
+  ```js
+    { $getField:
+      { field: { $literal: "$small" },
+        input: {
+          input: ...
+          field: ...
+        }
+      }
+    }
+  ```
+## addFields
+- 临时添加字段的聚合函数，格式如下
+  ```js
+    {
+      $addFields: {
+        newFields: ..... // 可以写种
+      }
+    }
+  ```
+- 1.可以直接写本字段的顶层属性（即最外层属性）: `$name` , `$info.name`
+- 2.可以运行函数
+    ```js
+      newFields: $function: {
+        body: function(item1, item2, ...) {
+          return .... // 返回值就是新字段的值
+        },
+        // 传参
+        args: [ item1, item2, ... ],
+        lang: "js"
+      }
+    ```
 ## facet
 - `$facet` 是一个非常实用的阶段操作符，它的核心作用是：在同一个聚合管道中，对同一批输入文档并行执行多个独立的子管道（facet），并将每个子管道的结果汇总到一个文档中; ==允许你 “一次查询，完成多个统计任务”==
   ```json

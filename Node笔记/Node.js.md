@@ -237,7 +237,38 @@
   - dirent.isFile()：是否是文件（返回布尔值）
   - dirent.isDirectory()：是否是目录（返回布尔值）
   - dirent.isSymbolicLink()：是否是符号链接（快捷方式）
-### 创建与读写 (补)
+### existsSync与statSync
+- 1.existsSync： 用于判断路径是否存在，可以用来判断目录或文件是否存在，然后进行下一步操作
+  ```js
+    // 可以先判断文件夹是否存在
+    if(!fs.existsSync(pathDir)){
+      fs.mkdirSync(pathDir, { recursive: true })
+    }
+  ```
+- 2.statSync：用于获取目录或文件的元数据,常用于检测文件的类型，或者获取文件基础信息
+  ```js
+    const stats = fs.statSync(filePath)
+
+    // 1. 核心类型判断
+    console.log('是否为文件：', stats.isFile()); // true
+    console.log('是否为目录：', stats.isDirectory()); // false
+
+    // 2. 大小与时间戳（格式化时间）
+    console.log('文件大小：', stats.size, '字节（', (stats.size / 1024).toFixed(2), 'KB）');
+    console.log('创建时间：', stats.birthtime.toLocaleString()); // 格式化本地时间
+    console.log('最后修改时间：', stats.mtime.toLocaleString());
+    console.log('最后访问时间：', stats.atime.toLocaleString());
+
+    // 3. 解析文件权限（简单示例）
+    const perm = stats.mode.toString(8).slice(-3); // 转换为 8 进制，取后 3 位（如 644）
+    console.log('文件权限（8进制）：', perm); // 644 → 可读可写（所有者）、可读（其他）
+
+    // 4. 所有者信息（Unix/mac 系统）
+    console.log('所属用户 ID：', stats.uid);
+    console.log('所属用户组 ID：', stats.gid);
+  ```
+
+### 创建与读写
 - 中游文件夹的自动创建
   ```js
     /** 问题1&2
@@ -251,10 +282,13 @@
 
     // recursive: 异步创建文件夹,如果路径中包含不存在的父级目录，会自动创建所有缺失的目录
     // 不会重复创建文件夹
-    fs.mkdirSync(pathDir, { recursive: true })
+    // 可以先判断文件夹是否存在
+    if(!fs.existsSync(pathDir)){
+      fs.mkdirSync(pathDir, { recursive: true })
+    }
   ```
-  > 1.拓展方法：`path.join(a,b,c)`,单纯的字符串拼接`a/b/c`，可以没有绝对路径（__dirname），但是`path.resolve`,总会以当前文件的绝对路径为基准进行拼接，实际使用区别不大
-  > 2.拓展方法：`fs.dirname(fpath)`删除`/`最后一部分,一般用于删除文件部分，例如：`a/b/c.js -> a/b`
+  > ==1.拓展方法==：`path.join(a,b,c)`,单纯的字符串拼接`a/b/c`，可以没有绝对路径（__dirname），但是`path.resolve`,总会以当前文件的绝对路径为基准进行拼接，实际使用区别不大
+  > ==2.拓展方法==：`fs.dirname(fpath)`删除`/`最后一部分,一般用于删除文件部分，例如：`a/b/c.js -> a/b`
 - 存入数据进入文件夹
   ```js
     /** 
@@ -357,20 +391,58 @@
 - 但第一个流写完后，会自动与可写流断开管道连接（触发 unpipe 事件），此时可写流处于 “空闲可写入” 状态。
 - 若不监听 unpipe，直接连续调用 pipe（如 file1.pipe(ws).pipe(file2.pipe(ws))），两个可读流会同时向可写流写数据，导致文件内容错乱（比如 file1 的末尾和 file2 的开头混在一起）。
 
-### 删除文件（补）
-- 删除文件需要权限，设置好权限后，如下重置文件的操作
+### rmSync与unlinkSync
+- 删除文件常用的api有`rmSync`和`unlinkSync`,其中`rmSync`是node 14+ 版本新增的更加高级的删除方法, ==推荐`rmSync`==
+- 一、核心区别对比表
+  | 特性                | `fs.unlinkSync(path)`                | `fs.rmSync(path, [options])`                          |
+  |---------------------|---------------------------------------|-------------------------------------------------------|
+  | **核心作用**        | 删除文件或符号链接（软链接）          | 删除文件、目录（空/非空）、符号链接（功能全覆盖）      |
+  | **支持删除对象**    | 仅文件、软链接（删目录会报错）        | 文件、软链接、空目录、非空目录（需配置 `recursive: true`） |
+  | **目录删除能力**    | 不支持（删目录抛 `ENOTDIR` 错误）     | 支持（空目录直接删，非空目录需加 `recursive: true`）  |
+  | **强制删除**        | 不支持（文件占用时抛错）              | 支持（配置 `force: true`，忽略不存在路径/占用错误）   |
+  | **新增特性**        | 无额外配置项，功能单一                | 支持递归删除、强制删除、同步异步兼容（对应 `rm` 命令） |
+  | **Node.js 版本**    | 所有版本支持（传统方法）              | v14.14.0+ 支持（推荐使用，逐步替代 `unlinkSync`/`rmdirSync`） |
+  | **底层关联**        | 对应 Unix 系统的 `unlink` 系统调用    | 对应 Unix 系统的 `rm` 命令（更贴近用户习惯）          |
+  > ==软链接就是快捷方程式，它指向真正的文件存储位置，本身仅是个导航文件==
+- 二、需求场景与推荐用法对应表
+  | 需求场景                | 推荐使用                          | 不推荐/不支持                |
+  |-------------------------|-----------------------------------|-----------------------------|
+  | 删除单个文件            | `rmSync(path, { force: true })`   | `unlinkSync`（无容错）      |
+  | 删除空目录              | `rmSync(path)`                    | `unlinkSync`（报错）        |
+  | 删除非空目录            | `rmSync(path, { recursive: true, force: true })` | 无（需手动递归删）          |
+  | 删除符号链接            | `rmSync` / `unlinkSync`           | -                           |
+  | 兼容低版本 Node.js      | `unlinkSync`（文件）+ `rmdirSync`（空目录） | `rmSync`（版本不够）        |
+
+
+- 删除文件/目录需要权限，设置好权限后，如下重置文件的操作
   ```js
-    const fPath = Path.resolve(__dirname, `../../testData/addphotosByChunk`)
-    if(fs.existsSync(fPath)){
-      fs.rmSync(fPath, { 
-        recursive: true,  // 递归删除子文件/目录
-        force: true       // 强制删除（忽略权限限制，需要用户实际有权限）
-      });
-      console.log('上一次执行文件清除成功')
+    const testFile = path.join(__dirname, 'test.txt');
+    const nonExistentFile = path.join(__dirname, 'nonexistent.txt');
+
+    // 1.1 unlinkSync 删除文件（路径不存在会报错）
+    try {
+      fs.unlinkSync(testFile);
+      console.log('unlinkSync：文件删除成功');
+    } catch (err) {
+      if (err.code === 'ENOENT') console.log('unlinkSync：文件不存在（报错）');
     }
+
+    // 1.2 rmSync 删除文件（force: true 忽略不存在的路径，不报错）
+    fs.rmSync(nonExistentFile, { force: true }); // 无报错
+    console.log('rmSync：忽略不存在的文件，执行成功');
+
+    // ==== 2.删除目录 仅rmSync ====
+
+    // 2.1 rmSync 删空目录（直接删，无需额外配置）
+    fs.rmSync(emptyDir);
+    console.log('rmSync：空目录删除成功');
+
+    // 2.2 rmSync 删非空目录（必须加 recursive: true，递归删除所有内容）
+    fs.rmSync(nonEmptyDir, { recursive: true, force: true });
+    console.log('rmSync：非空目录删除成功');
   ```
 
-### rename(Sync)待
+### rename(Sync)
 - ==rename: 重命名文件夹或文件的名字==
 - ==异步操作，但不阻塞代码`fs.rename(oldPath,newPath,callback)`==，第三个参数 callback 是必填回调函数，操作完成后触发，接收一个 err 参数（成功时 err 为 null，失败时为错误对象）
   ```js
@@ -425,6 +497,14 @@
   - 若当前进程没有 oldPath 的读取权限或 newPath 所在目录的写入权限：抛出权限错误（Error: EACCES）；
 - ==3.符号链接（软链接,快捷方式）的处理==
   - 如果 oldPath 是符号链接：方法会修改符号链接本身的路径，而不是链接指向的目标文件 `/` 目录。
+### copyFile(Sync)
+- 把文件从一个地方复制到另一个地方，常用于提升目录，比如筛选特定的文件，然后统一放在一个新的目录中
+- 最基础的用法： 
+  ```js
+    // 路径中包含文件的名字 例如 /user/data/img/apple.png
+    fs.copyFileSync(sourcePath, targetPath);
+  ```
+  > 在本地获取好绝对路径后，包含文件名，之后会自动从旧地址sourcePath迁移至新地址targetPath
 ### 文件描述符fd(了解)
 - nodejs中给每一个文件配置一个文件描述符(数字),文件描述符fd可以代替fs文件读写内容的相对路径,不过主要用于读取文件信息,记得打开文件后,最后要关闭它
   ```js
