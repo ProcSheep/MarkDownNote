@@ -2185,6 +2185,15 @@
     console.log(Person.prototype.__proto__ === Object.prototype) // true
     console.log(Object.prototype) // 查看Object原型上的函数方法
   ```
+#### 精简面试
+- JS 中的原型链是实现继承的核心机制，面试中可以这样简洁概括：
+原型（prototype）：==每个函数(包括构造函数)都有 prototype 属性，指向一个对象（原型对象），里面存放着供实例共享的属性和方法。==
+- 隐式原型（proto）：==每个对象（包括实例对象）都有 __proto__ 属性，指向其构造函数的 prototype==。比如 let obj = new Foo()，则 obj.__proto__ === Foo.prototype。
+==**原型链**==：当访问一个对象的属性 / 方法时，JS 会先在自身查找；找不到则通过 __proto__ 向上查找其原型对象，再找不到就继续向上查找原型的原型…… 直到找到 Object.prototype（顶层原型），若仍找不到则返回 undefined。这条链式查找路径就是原型链。
+==核心作用：实现属性和方法的继承与共享，比如数组实例能使用 Array.prototype 上的 push() 方法，就是通过原型链查找实现的。==
+==**一句话总结**==：原型链是对象通过 __proto__ 连接起来的链式结构，用于属性查找和继承，根源是 Object.prototype（其 __proto__ 为 null
+
+
 ### 继承
 - ==基本代码 父类和子类==
   ```js

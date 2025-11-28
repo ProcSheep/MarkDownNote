@@ -289,6 +289,52 @@
     - 0: bar的AO
     - 1: foo的AO
     - 2: global
+### 豆包解释
+- ==作用域链是 JavaScript 中变量查找的规则==，核心是：当访问一个变量时，==JS 会从当前作用域开始查找，找不到就往上一级作用域找，直到全局作用域==，形成一条 “链式查找路径”。
+- 作用域就是变量的 “有效范围”，分三种：
+  1.==全局作用域==：在所有函数外声明的变量，整个程序都能访问。
+  2.==函数作用域==：在函数内声明的变量，只能在函数内访问。
+  3.==块级作用域（ES6+）==：用 let/const 在 {} 内声明的变量（如 if、for 块），只能在块内访问。
+- 当使用一个变量时，JS 会按以下规则查找：
+  1.先在当前作用域找，找到就用。
+  2.找不到就去父级作用域找。
+  3.一直往上，直到全局作用域。
+  4.全局也找不到，就报错（未声明）或返回 undefined（已声明未赋值）。
+- 例如: (==函数内作用域在定义时已经创建,后续即使针对变量赋值不会改变初始的作用域值==)
+  ```js
+    // 全局作用域
+    let a = 100;
+
+    function fn() {
+      // 函数作用域（fn的作用域）
+      let b = 200;
+      
+      function inner() {
+        // 函数作用域（inner的作用域，是fn的子作用域）
+        let c = 300;
+        console.log(a); // 100（当前作用域没有，往父级fn找，还没有，再往全局找，找到a=100）
+        console.log(b); // 200（当前作用域没有，往父级fn找，找到b=200）
+        console.log(c); // 300（当前作用域有，直接用）
+        console.log(d); // 报错：d is not defined（全局也找不到）
+      }
+      
+      inner();
+    }
+
+    fn();
+  ```
+- ES6(let const)
+  ```js
+    let x = 10;
+
+    if (true) {
+      let y = 20; // 块级作用域（if块内）
+      console.log(x); // 10（当前块内没有x，往父级全局找）
+      console.log(y); // 20（当前块内有）
+    }
+
+    console.log(y); // 报错：y is not defined（全局作用域找不到块内的y）
+  ```
 ### 作用域面试题
   ```js
     var n = 100
@@ -369,6 +415,9 @@
   ```
   > 函数访问name和num就是个闭包,如果没有闭包,那么外部变量的值必须作为参数传入函数时才会被允许使用,但是js中通过作用域链已经链接了函数和其关联环境,所以极大方便了我们的使用
 - MDN: ==一个函数和对其周围状态的引用捆绑在一起的组合称为闭包==,也就说闭包可以让你在一个内层函数中访问其外层函数的作用域,在js中创建一个函数,闭包会在函数创建的时候创建出来,但从严格角度来说,当函数访问外层作用域变量时,才会是一个闭包
+### 豆包解释
+- 在 JavaScript 中，闭包是指函数能够访问其自身作用域之外的变量的现象。
+- 简单来说，当一个函数 A 内部定义了另一个函数 B，并且函数 B 使用了函数 A 中的变量，同时函数 B 被返回或传递到外部时，就形成了闭包。这使得函数 A 中的变量不会被垃圾回收机制清除，即使函数 A 已经执行完毕。
 ### 闭包的内存泄露和清除
 - 造成闭包内存泄漏的代码如下: (==柯里化的函数==)
   ```js
@@ -591,7 +640,7 @@
     // 打印日志
     // 1.日志时间
     // 2.日志类型 info/debug/feature
-    // 3.具体信息
+    // 3.具体信息 额外补充
 
     var logInfo = date => type => message =>{
       console.log(`时间:${date} 类型:${type} 内容:${message}`)
@@ -723,7 +772,7 @@
   ```
 ## Js的运行原理
 ### 事件队列
-- ==js是单线程语言,浏览器在运行时,每一个页面是一个进程,每个进程内部有多个线程,其中一个线程就是js线程,当一个页面崩溃时,只是本个进程崩溃,浏览器并不会崩溃==
+- ==js是单线程语言,浏览器在运行时,每一个页面是一个进程,每个进程内部有多个线程,其中一个线程就是js线程,当一个页面崩溃时,只是本个线程崩溃,浏览器并不会崩溃==
 - js线程中分为3个部分,==栈(执行上下文栈),浏览器代理,队列Queue==
 - ==异步操作的运行逻辑==
   ==1.定时器==
@@ -924,6 +973,115 @@
   > 1.异常抛出在foo函数,捕获异常在test函数内
   > ==2.try-catch捕获的异常不会阻塞代码继续,会继续打印出错误error==
   > ==**3.捕获的异常可以是自定义throw抛出的异常,也可以是常规报错(语法问题等)**==
+`throw new Error()` 和 `new Error()` 有本质区别，核心在于是否触发“错误抛出”行为：
+
+### **知识补充(豆包)**
+#### new Error()与 throw new Error()
+1. `new Error()`：仅创建错误对象，不触发错误
+- 这只是**创建一个 Error 实例**（包含错误信息、堆栈等属性），但不会中断程序执行，也不会触发任何错误处理机制。
+- 相当于创建了一个普通的 JavaScript 对象，只是它的类型是 `Error`。
+
+**示例**：
+```javascript
+// 仅创建错误对象，不抛出
+const err = new Error('这是一个错误');
+console.log(err.message); // 打印 "这是一个错误"（程序继续执行）
+console.log('后续代码正常运行'); // 会执行
+```
+
+
+1. `throw new Error()`：创建并抛出错误，中断执行
+- 不仅创建 Error 实例，还会**主动抛出这个错误**，导致当前代码执行流程中断，并触发错误捕获机制（如 `try/catch` 或 Promise 的 `.catch()`）。
+- 如果没有任何捕获机制，会导致全局错误（如浏览器控制台的 `Uncaught Error`）。
+
+**示例**：
+```javascript
+try {
+  // 创建并抛出错误
+  throw new Error('这是一个被抛出的错误');
+  console.log('这句话不会执行'); // 因为错误抛出后流程被中断
+} catch (e) {
+  console.log('捕获到错误：', e.message); // 会执行
+}
+```
+
+
+关键区别总结
+| 操作               | 行为                                  | 对程序执行的影响                  |
+|--------------------|---------------------------------------|-----------------------------------|
+| `new Error(...)`   | 创建错误对象，不抛出                  | 程序继续执行，无任何异常提示      |
+| `throw new Error(...)` | 创建错误对象并立即抛出           | 中断当前执行流程，需被捕获否则报错 |
+
+
+在 Promise 中的特殊场景
+在 Promise 的 `reject` 中，我们通常直接传递 `new Error()` 而不用 `throw`，因为 `reject` 本身的作用就是“标记 Promise 为失败状态”：
+```javascript
+new Promise((resolve, reject) => {
+  // 正确：用 reject 传递错误对象（无需 throw）
+  reject(new Error('请求失败')); 
+  
+  // 等效但不推荐：在 Promise  executor 中 throw 会被自动捕获并转为 reject
+  // throw new Error('请求失败'); 
+});
+```
+- Promise 的执行器函数（executor）内部如果 `throw` 错误，会被 Promise 自动捕获并调用 `reject`，所以两种方式效果相同，但 `reject(new Error())` 更符合语义。
+
+
+简单说：`new Error()` 是“造了个错误对象”，`throw new Error()` 是“造了个错误对象并把它扔出去”。
+
+
+#### throw new Error()与reject(new Error())
+在 Promise 执行器（executor）函数内部，`reject(new Error())` 和 `throw new Error()` 在**最终效果上是等效的**，但二者的底层机制不同。
+
+
+1. 相同点：都会导致 Promise 变为 rejected 状态
+无论使用 `reject` 还是 `throw`，最终都会让当前 Promise 进入“拒绝”状态，并且错误信息会被传递给后续的 `.catch()` 处理器（如果有的话）。
+
+**示例 1：使用 reject**
+```javascript
+const p1 = new Promise((resolve, reject) => {
+  reject(new Error('出错了')); // 主动调用 reject
+});
+p1.catch(err => console.log(err.message)); // 输出：出错了
+```
+
+**示例 2：使用 throw**
+```javascript
+const p2 = new Promise((resolve, reject) => {
+  throw new Error('出错了'); // 抛出错误
+});
+p2.catch(err => console.log(err.message)); // 输出：出错了
+```
+两者最终都会触发 `.catch()`，效果一致。
+
+
+ 1. 不同点：触发 rejected 状态的机制不同
+- **`reject(new Error())`**：主动调用 Promise 提供的 `reject` 函数，显式地将 Promise 标记为 rejected 状态。这是**推荐的做法**，语义更清晰（明确表示“此 Promise 因该错误而失败”）。
+
+- **`throw new Error()`**：通过抛出同步错误的方式，被 Promise 内部机制捕获，进而自动调用 `reject`。这是一种“间接触发”，本质上是 Promise 对执行器内部同步错误的“兜底处理”。
+
+
+ 1. 注意：仅在 Promise 执行器内部等效
+`throw` 的效果仅限于 Promise 执行器（即 `new Promise((resolve, reject) => { ... })` 中的回调函数）内部。在其他场景（如 `.then()` 回调中），`throw` 和 `reject` 的行为不同：
+
+- 在 `.then()` 回调中 `throw` 错误，会导致当前 Promise 链变为 rejected 状态（等效于返回一个被 reject 的 Promise）。
+- 而 `.then()` 回调中无法直接调用 `reject` 函数（除非手动返回 `Promise.reject(...)`）。
+
+**示例：在 .then() 中 throw**
+```javascript
+Promise.resolve()
+  .then(() => {
+    throw new Error('then 中出错'); // 会导致后续 .catch() 触发
+  })
+  .catch(err => console.log(err.message)); // 输出：then 中出错
+```
+
+
+总结
+- 在 Promise 执行器内部：`reject(new Error())` 和 `throw new Error()` 最终效果相同，都会使 Promise 变为 rejected 状态。
+- 推荐使用 `reject(new Error())`，因为它更明确地表达了“主动拒绝 Promise”的意图，代码可读性更高。
+- 在执行器外部（如 `.then()` 回调），`throw` 错误会被自动转为 rejected 状态，等效于 `return Promise.reject(new Error())`。
+
 ## 迭代器与生成器
 ### 理解迭代器
 - ==迭代器(iterator)==: 在容器(container)对象上遍历其每一项的对象,称为迭代器(它是对象),容器可以是数组,链表,哈希表,树结构等

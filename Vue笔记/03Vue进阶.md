@@ -854,11 +854,14 @@
   > 命名#list,所以子组件要给这个插槽传参需要name=list
 
 ## 生命周期(选项式)
+- ==vue2 与 vue3==
+  [![pA6hVh9.jpg](https://s21.ax1x.com/2024/11/10/pA6hVh9.jpg)](https://imgse.com/i/pA6hVh9)
 ### 创建阶段
 - ==每个组件的创建都有一套生命周期,开发者可以使用生命周期钩子函数,在特定阶段运行自己的代码==
 - ==各个生命周期阶段的详细介绍:==
   - beforeCreate: ==几乎不用==,什么都没有,定义的东西啥都还没创建呢,啥也访问不到
   - create: ==实例已经创建完成,但是还没有挂载dom树,所以无法操作dom==，数据观测、property 和 method 的计算、watch/event 事件回调都已完成，==可在这个阶段进行**数据的初始化、异步数据**的请求等操作。==
+  > 注: 在vue3中,创建阶段(before)create均包含在setup语法糖中,不用特殊属去写
   - beforeMount: ==几乎不用==,tem编译之前,这个阶段过后,dom会被挂载
   - ==**mounted(最常用**==): 挂载dom节点完成,可以访问到dom节点,只有这里可以访问获取dom,操作dom对象
 ### 更新阶段与nextTick
@@ -909,8 +912,8 @@
         })
     }
   ```
-  > ==当你在 Vue 中更改响应式状态时，最终的 DOM 更新并不是同步生效的==，而是由 Vue 将它们缓存在一个队列中，直到下一个“tick”才一起执行。这样是为了确保每个组件无论发生多少状态改变，都仅执行一次更新。
-  > nextTick() 可以在状态改变后立即使用，以等待 DOM 更新完成。你可以传递一个回调函数作为参数，或者 await 返回的 Promise。
+  > ==1.当你修改 Vue 组件的响应式数据后，Vue 并不会立即更新 DOM==，而是会将 DOM 更新操作放入一个队列中，等同一事件循环中的所有数据变更完成后，再统一进行 DOM 更新（==这是一种优化策略，避免频繁操作 DOM 导致性能问题==）。
+  > 2.nextTick 的作用就是等待这个 DOM 更新队列执行完毕后，再执行传入的回调函数，确保你能在回调函数中获取到最新的 DOM 状态
 ### 销毁阶段
 - 销毁组件操作,组件内部的一切都会被销毁
 - 组件销毁: ==beforeUnmount unmounted,老样子,前者是销毁前,几乎没用,后者是销毁后,组件的一切都没了== 
@@ -1044,7 +1047,7 @@
             setup() {
                 const myname = ref("kerwin")
                 // 创建一个ref对象,后期会获取到myinput的dom对象
-                const myinput = ref(null)
+                const myinput = ref(null) // 里面不写null,仅有ref()也行
 
                 const handleClick = () => {
                     myname.value = "xiaoming"
@@ -1064,7 +1067,7 @@
         }
     </script>
   ```
-  - 定义好一个**ref + null**的状态myinput : `const myinput = ref(null)`,==开始不绑定东西,**用于未来获取dom节点或组件**==
+  - 定义好一个**ref + null(可选)**的状态myinput : `const myinput = ref(null)`,==开始不绑定东西,**用于未来获取dom节点或组件**== 
   - 在标签上挂ref: `<input type="text" ref="myinput">`,==ref="myinput"相当于把组合式创建的myinput状态放进去了,这个myinput是一个状态不是字符串,之后ref会自动把这个标签封装进去==
   - 打印ref获取的dom节点(不再使用this):`console.log(myinput.value)`, ==**遵循.value规则**,直接获得dom节点,然后随意操作即可==
   > ==根据生命周期来说,ref定义获取节点后并不能马上得到节点,可以在事件处理函数中使用获取的ref节点,也可以在onMounted等待dom挂载完后中使用==
@@ -3005,7 +3008,7 @@
 ### 组件内的守卫(局部拦截)
 - ==选项式写法==
 - 组件内的局部拦截,想在那个路由组件内拦截就写哪里,==有beforeRouteEnter(进入组件之前),beforeRouteUpdate(组件更新之前)和beforeRouteLeave(离开组件之前)三个函数==
-- ==**组合式api中没有onBeforeRouteEnter(进入组件前),剩余的2个都有(on+...),所以组合式api想要跳转路由前拦截,推荐使用全局路由守卫router.beforeEach**==
+- ==**(vue3)组合式api中没有onBeforeRouteEnter(进入组件前),剩余的2个都有(on+...),所以组合式api想要跳转路由前拦截,推荐使用全局路由守卫router.beforeEach**==
 - 本节以下所有代码都是选项式写法,书写位置都在script-export default内部(js区)
 > 
 - ==**beforeRouteUpdate(组件更新之前)**== : **可以替换"猜你喜欢"功能的watch函数**,在Detail.vue中,把watch部分注释,替换如下

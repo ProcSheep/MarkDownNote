@@ -1,0 +1,169 @@
+[
+  {
+    "name": "AIChat",
+    "path": "/content/aichat",
+    "icon": "el-icon-s-order",
+    "children": [
+      {
+        "path": "/content/aichat/conversation",
+        "name": "conversation",
+        "icon": "el-icon-tickets"
+      },
+      {
+        "path": "/content/aichat/character",
+        "name": "character",
+        "icon": "el-icon-tickets"
+      },
+      {
+        "path": "/content/aichat/groups",
+        "name": "groups",
+        "icon": "el-icon-tickets"
+      },
+      {
+        "path": "/content/aichat/prompt",
+        "name": "prompt",
+        "icon": "el-icon-tickets"
+      },
+      {
+        "path": "/content/aichat/explore",
+        "name": "explore",
+        "icon": "el-icon-tickets"
+      },
+      {
+        "path": "/content/aichat/push",
+        "name": "push",
+        "icon": "el-icon-tickets"
+      },
+      {
+        "path": "/content/aichat/pushJson",
+        "name": "worldInfo",
+        "icon": "el-icon-tickets"
+      },
+      {
+        "path": "/content/aichat/pushInfo",
+        "name": "pushInfo",
+        "icon": "el-icon-tickets"
+      },
+      {
+        "path": "/content/aichat/config",
+        "name": "config",
+        "icon": "el-icon-tickets"
+      }
+    ]
+  },
+  {
+    "name": "API Test Cases",
+    "path": "/content/paramsdata",
+    "icon": "el-icon-menu"
+  },
+  {
+    "name": "API Test Results",
+    "path": "/content/test",
+    "icon": "el-icon-s-comment"
+  },
+  {
+    "name": "API Tsmm",
+    "path": "/content/tsmm",
+    "icon": "el-icon-s-order",
+    "children": [
+      {
+        "path": "/content/tsmm/orders",
+        "name": "Orders",
+        "icon": "el-icon-tickets"
+      },
+      {
+        "path": "/content/tsmm/AvailableServices",
+        "name": "AvailableServices",
+        "icon": "el-icon-tickets"
+      },
+      {
+        "path": "/content/tsmm/service",
+        "name": "Using Service",
+        "icon": "el-icon-tickets"
+      },
+      {
+        "path": "/content/tsmm/tools",
+        "name": "Test Service",
+        "icon": "el-icon-tickets"
+      },
+      {
+        "path": "/content/tsmm/link",
+        "name": "Using Link",
+        "icon": "el-icon-tickets"
+      }
+    ]
+  },
+  {
+    "name": "Modify Repost Data",
+    "icon": "el-icon-s-claim",
+    "children": [
+      {
+        "path": "/content/repost/creator",
+        "name": "Creator Data",
+        "icon": "el-icon-tickets"
+      },
+      {
+        "path": "/content/repost/media",
+        "name": "Media Data",
+        "icon": "el-icon-edit-outline"
+      }
+    ]
+  },
+  {
+    "name": "Smm Events Data",
+    "path": "/content/smmevent",
+    "icon": "el-icon-s-order"
+  },
+  {
+    "name": "Mongo Service Data",
+    "path": "/content/mongoservice",
+    "icon": "el-icon-s-order"
+  },
+  {
+    "name": "API Test Service",
+    "icon": "el-icon-s-tools",
+    "children": [
+      {
+        "path": "/content/service/alldata",
+        "name": "All Service",
+        "icon": "el-icon-tickets"
+      },
+      {
+        "path": "/content/service/refresh",
+        "name": "Reresh Order",
+        "icon": "el-icon-edit-outline"
+      }
+    ]
+  },
+  {
+    "name": "API Test Orders",
+    "icon": "el-icon-s-order",
+    "children": [
+      {
+        "path": "/content/orders/monitor",
+        "name": "Monitor Orders",
+        "icon": "el-icon-timer"
+      },
+      {
+        "path": "/content/orders/follow",
+        "name": "Orders Followers",
+        "icon": "el-icon-user"
+      },
+      {
+        "path": "/content/orders/select",
+        "name": "Select Orders",
+        "icon": "el-icon-search"
+      },
+      {
+        "path": "/content/orders/check",
+        "name": "Check Orders",
+        "icon": "el-icon-document-checked"
+      }
+    ]
+  },
+  {
+    "name": "App Data",
+    "path": "/content/getappdata",
+    "icon": "el-icon-s-grid"
+  }
+]

@@ -1080,7 +1080,7 @@ html：
 - 代码 ：
 ```
     /* 当为竖屏时，即宽比高小时 */
-    @media screen and (orientation:portrait){
+    @media screen and (orientation:bortrait){
         div{
             width: 33.33%; // 盒子宽度占屏幕1/3
         }

@@ -192,6 +192,18 @@
       }
     })
   ```
+- ==参数:==
+  - recursive（最常用）
+  类型：boolean，默认 false
+  作用：控制是否递归创建多级目录。
+  true：自动创建所有缺失的父目录（如 a/b/c 会自动创建 a 和 a/b）。
+  false（默认）：仅创建目标目录，父目录不存在则报错。
+  - mode
+  类型：number（八进制，如 0o755）或 string，默认 0o777
+  作用：指定目录权限（类 Unix 系统有效），最终权限会受系统 umask 影响。
+  - encoding
+  类型：string，默认 'utf8'
+  作用：当路径为 Buffer 时，用于解析路径的编码（一般无需手动设置）。
 - ==readdir: 读取文件夹或文件的信息,深层嵌套文件可以递归读取==
   ```js
     const fs = require("fs");
@@ -978,8 +990,159 @@
       }
     </script>
   ```
+### **表单上传流程(豆包)**
+- ==没有前端代码,展示js(fetch发送) + node后端处理的简单流程代码(豆包生成)==, 上传信息有普通文本类(用户名,密码)和文件类型(图片)
+- 1.前端js代码
+  ```js
+    // 获取表单元素
+    const userForm = document.getElementById('userForm');
 
+    // 监听表单提交事件
+    userForm.addEventListener('submit', async (e) => {
+      e.preventDefault(); // 阻止表单默认提交行为
+      
+      // 创建FormData对象，用于处理表单数据（包括文件）
+      const formData = new FormData();
+      
+      // 获取文本数据并添加到FormData
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      formData.append('username', username);
+      formData.append('password', password);
+      
+      // 获取单张用户头像并添加
+      const avatar = document.getElementById('avatar').files[0];
+      if (avatar) {
+        formData.append('avatar', avatar);
+      }
+      
+      // 获取多张日常图片并添加
+      const dailyPics = document.getElementById('dailyPics').files;
+      for (let i = 0; i < dailyPics.length; i++) {
+        formData.append('dailyPics', dailyPics[i]); // 同一个键可以添加多个值
+      }
+      
+      try {
+        // 发送数据到后端
+        const response = await fetch('http://localhost:8888/userInfo', {
+          method: 'POST',
+          body: formData,
+          // 不需要设置Content-Type，浏览器会自动设置为multipart/form-data并添加boundary
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+          console.log('提交成功:', result);
+        } else {
+          console.error('提交失败:', result);
+        }
+      } catch (error) {
+        console.error('网络错误:', error);
+      }
+    });
+  ```
+- ==解释细节==: 
+  - 1.`const formData = new FormData()`: 是创建了一个 FormData 对象的实例，这是处理表单数据（尤其是包含文件上传时）非常重要的一步。它能像容器一样存储键值对形式的表单数据，既可以存放文本信息（如用户名、密码），也可以存放文件数据（如你代码中的头像和日常图片）, ==当需要上传文件时，必须使用 FormData 配合 multipart/form-data 格式，这是 HTTP 协议规定的文件上传标准方式。== 通过它的 append() 方法可以很方便地添加数据，不需要手动拼接复杂的表单格式字符串。
+  - 2.`const avatar = document.getElementById('avatar').files[0];`: 通过 ID 选择器获取页面中 ID 为avatar的 DOM 元素，这个元素通常是一个文件上传输入框（`<input type="file" id="avatar">`）, `.files`是文件输入框元素特有的files属性，它返回一个FileList对象，包含了用户选择的所有文件。即使只允许选择一个文件，它也会以列表形式存在。一张就选取[0],多张就直接获取,这是一个数组单位
+  - 3.`const result = await response.json(); 中，json() `: 解析响应体：将后端返回的 JSON 格式字符串解析为 JavaScript 对象（或数组）。比如，如果后端返回的响应体是字符串 {"success": true, "data": {"username": "test"}}，json() 会将其转换为对应的 JS 对象：
+- 2.node后端代码: 
+  ```js
+    const express = require('express');
+    const multer = require('multer');
+    const path = require('path');
+    const app = express();
 
+    // 解决跨域问题
+    app.use((req, res, next) => {
+      res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5500'); // 允许前端域名访问
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      next();
+    });
+
+    // 配置multer存储选项
+    const storage = multer.diskStorage({
+      destination: (req, file, cb) => {
+        // 根据文件类型设置不同的存储目录
+        if (file.fieldname === 'avatar') {
+          cb(null, 'uploads/avatars'); // 头像存储目录
+        } else if (file.fieldname === 'dailyPics') {
+          cb(null, 'uploads/daily'); // 日常图片存储目录
+        }
+      },
+      filename: (req, file, cb) => {
+        // 生成唯一文件名，避免冲突
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const ext = path.extname(file.originalname);
+        cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+      }
+    });
+
+    // 创建multer实例
+    const upload = multer({ storage: storage });
+
+    // 处理表单提交的路由
+    // upload.fields用于处理多个不同字段的文件,针对前端传入的formData实例对象
+    app.post('/userInfo', upload.fields([
+      { name: 'avatar', maxCount: 1 }, // 单张头像
+      { name: 'dailyPics', maxCount: 5 } // 最多5张日常图片
+    ]), (req, res) => {
+      try {
+        // formData会自动根据数据类型把数据存入req.body或者req.files中
+        // req.body包含文本字段
+        const { username, password } = req.body;
+        
+        // req.files包含上传的文件信息
+        const avatar = req.files['avatar'] ? req.files['avatar'][0] : null;
+        const dailyPics = req.files['dailyPics'] || [];
+        
+        // 构建返回结果
+        const result = {
+          success: true,
+          message: '数据接收成功',
+          data: {
+            userInfo: {
+              username,
+              // 实际项目中不应该返回密码，这里仅作演示
+              password: '******' // 密码脱敏处理
+            },
+            avatar: avatar ? {
+              filename: avatar.filename,
+              path: avatar.path,
+              size: avatar.size
+            } : null,
+            dailyPics: dailyPics.map(pic => ({
+              filename: pic.filename,
+              path: pic.path,
+              size: pic.size
+            }))
+          }
+        };
+        
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          message: '服务器处理错误',
+          error: error.message
+        });
+      }
+    });
+
+    // 启动服务器
+    const PORT = 8888;
+    app.listen(PORT, () => {
+      console.log(`服务器运行在 http://localhost:${PORT}`);
+    });
+  ```
+- ==解释细节==
+  - 1.存储路径是相对路径,相对于启动node服务器的路径(npm run server), 可以通过__dirname设置到当前文件路径,防止路径混乱
+  - 2.中间件(单文件signle,多文件any,任意处理files)
+    | 中间件方法 | 用途 | 文件信息存储位置 | 主要特点 | 适用场景 |
+    |------------|------|------------------|----------|----------|
+    | `single(fieldname)` | 处理单个文件上传 | `req.file`（对象） | 仅接受指定字段名，仅接受1个文件 | 头像上传、证件照上传等单一文件场景 |
+    | `fields([{name, maxCount}])` | 处理多个指定字段的文件 | `req.files`（对象，键为字段名，值为文件数组） | 可指定多个字段，每个字段可设置最大文件数 | 同时上传多种类型文件（如头像+作品图片） |
+    | `any()` | 处理所有上传文件 | `req.files`（数组） | 不限制字段名和数量，接收所有文件 | 灵活的多文件上传场景（需自行验证字段合法性） |
 ## express
 - ==一个nodejs的框架,更加方便地搭建web服务器==
 - express的优势: 
@@ -1038,6 +1201,41 @@
       console.log('express服务器启动成功')
     })
   ```
+- ==补充: res.send()与res.json()==
+  - ==1.res.send()：通用响应方法==
+    作用：发送各种类型的响应（字符串、HTML、Buffer、数组、对象等），是最常用的响应方法之一。
+    自动处理：
+    根据传入数据的类型，自动设置 Content-Type 响应头（如字符串→text/html，对象 / 数组→application/json）。
+    会自动结束响应（无需手动调用 res.end()）。
+    ```js
+    // 发送字符串（自动设为 text/html）
+    res.send('Hello World');
+
+    // 发送HTML（自动设为 text/html）
+    res.send('<h1>Hello World</h1>');
+
+    // 发送对象（自动转为JSON，设为 application/json）
+    res.send({ name: 'Express' });
+
+    // 发送Buffer（自动设为 application/octet-stream）
+    res.send(Buffer.from('binary data'));
+    ```
+  - 2. res.json()：专门用于发送 JSON 响应
+      作用：专门用于发送 JSON 格式的响应，强制将数据转换为 JSON 字符串。
+      自动处理：
+      无论传入什么数据（对象、数组、字符串等），都会转为 JSON 格式。
+      强制设置 Content-Type: application/json 响应头（即使数据是字符串）。
+      支持转换 null 和 undefined（res.send() 对 undefined 处理不同）。
+    ```js
+      // 发送对象（转为JSON）
+      res.json({ name: 'Express', version: '4.x' });
+
+      // 发送数组（转为JSON数组）
+      res.json([1, 2, 3]);
+
+      // 发送字符串（强制转为JSON格式的字符串）
+      res.json('Hello'); // 客户端收到："Hello"（带引号的JSON字符串）
+    ```
 - ==中间件类型(可匹配methods和path)==
   - 普通的中间件: `app.use(中间件)`
   - path中间件: `app.use('/home',中间件)` ==路径为/home==
