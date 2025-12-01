@@ -208,3 +208,201 @@
   ```
   > 之后在Node层面插入数据(insertOne/insertMany)，都会自动创建createAt/updateAt字段，默认时间为UTC+0,同时更新数据updateOne，save等操作也会自动更新updateAt字段
 
+
+## mongoose和mongodb
+- 在node中可以用mongodb语法实现简单的链接，进行测试，比如`connect.collection('users')`
+- 常规去写的话(express/koa)，比如router-controller-model一条龙，这里的使用第三方库mongoose实现对数据库的链接，mongoose是对原生mongodb的封装，所以语法和使用上有所不同
+- Mongoose vs MongoDB 原生 核心查询方法差异总表
+  | 功能分类         | 具体功能需求                | MongoDB 官方驱动（Collection 用法）                                                                 | Mongoose（Model 用法）                                                                 | 核心差异点（避坑重点）                                                                 |
+  |------------------|-----------------------------|-----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+  | **基础查询**     | 查单条文档（按条件）        | `await AiImages.findOne({ uuid: 'xxx' })`                                                           | `await AiImages.findOne({ uuid: 'xxx' })`                                               | 方法名一致；Mongoose 返回 **Model 实例**（可调用 save()），原生返回 **普通对象**          |
+  |                  | 查多条文档                  | `await AiImages.find({ uuid: 'xxx' }).toArray()`                                                    | `await AiImages.find({ uuid: 'xxx' })`                                                 | 原生需手动 `toArray()`；Mongoose 返回 Query 实例，支持链式调用（.sort/.limit）           |
+  |                  | 按 ID 查文档                | `const { ObjectId } = require('mongodb'); await AiImages.findOne({ _id: ObjectId('xxx') })`         | `await AiImages.findById('xxx')`                                                       | Mongoose 自动转字符串 ID 为 ObjectId，原生需手动转换                                    |
+  | **结果控制**     | 计数（符合条件文档数）      | `await AiImages.countDocuments({ uuid: 'xxx' })`                                                     | `await AiImages.countDocuments({ uuid: 'xxx' })` / `await AiImages.find().countDocuments()` | 方法名一致；Mongoose 支持链式计数，原生需直接传条件                                      |
+  |                  | 分页（跳过+限制）           | `await AiImages.find().skip(10).limit(20).toArray()`                                                | `await AiImages.find().skip(10).limit(20)`                                              | 原生需 `toArray()`；Mongoose 链式操作后直接 await 返回结果                              |
+  |                  | 排序                        | `await AiImages.find().sort({ createTime: -1 }).toArray()`                                          | `await AiImages.find().sort('-createTime')` / `sort({ createTime: -1 })`                | Mongoose 支持字符串简写（-表降序），原生仅支持对象格式                                   |
+  |                  | 投影（只返回指定字段）      | `await AiImages.find({}, { photos: 1, uuid: 1, _id: 0 }).toArray()`                                 | `await AiImages.find().select('photos uuid -_id')`                                      | Mongoose 支持字符串简写（空格分隔，-排除字段），原生需传对象                             |
+  |                  | 去重查询（单字段）          | `// 需用聚合实现 await AiImages.aggregate([{ $group: { _id: '$uuid' } }]).toArray()`                | `await AiImages.distinct('uuid', { photos: { $exists: true } })`                        | Mongoose 直接提供 `distinct()` 方法，原生无封装需手动处理                                |
+  | **原子操作**     | 查并更新                    | `await AiImages.findOneAndUpdate({ uuid: 'xxx' }, { $push: { photos: 'new' } }, { returnDocument: 'after' })` | `await AiImages.findOneAndUpdate({ uuid: 'xxx' }, { $push: { photos: 'new' } }, { new: true, runValidators: true })` | Mongoose 用 `new: true` 返更新后文档，支持 `runValidators` 校验；原生用 `returnDocument: 'after'` |
+  |                  | 查并删除                    | `await AiImages.findOneAndDelete({ uuid: 'xxx' })`                                                   | `await AiImages.findOneAndDelete({ uuid: 'xxx' }, { deleted: true })`                    | Mongoose 默认返删除前文档，原生默认返删除后文档；Mongoose 可通过 `deleted: true` 调整     |
+  | **高级查询**     | 聚合查询                    | `await AiImages.aggregate([{ $group: { _id: '$uuid', count: { $size: '$photos' } } }])`             | `await AiImages.aggregate([{ $group: { _id: '$uuid', count: { $size: '$photos' } } }]).model(AiImages)` | 方法名一致；Mongoose 可通过 `.model()` 转为 Model 实例，支持虚拟字段/中间件              |
+
+- 1.find/findOne
+  - MongoDB 原生（Collection）
+    find() 返回 Cursor 游标，需手动调用 toArray() 或遍历获取结果；
+    findOne() 直接返回匹配的「普通对象」（无 Schema 关联）；
+    按 ID 查询时，需手动将字符串 ID 转为 ObjectId。
+    ```js
+      const { ObjectId } = require('mongodb');
+      const db = client.db('test');
+      const AiImages = db.collection('aiimages');
+
+      // 1. 查多条：必须 toArray()
+      const list = await AiImages.find({ uuid: 'xxx' }).sort({ createTime: -1 }).limit(10).toArray();
+
+      // 2. 查单条
+      const doc = await AiImages.findOne({ _id: ObjectId('60d21b4667d0d8992e610c85') });
+
+      // 3. 投影（只返回 photos 和 uuid，隐藏 _id）
+      const projectedDoc = await AiImages.findOne(
+        { uuid: 'xxx' },
+        { projection: { photos: 1, uuid: 1, _id: 0 } } // 原生需用 projection 字段
+      );
+    ```
+  - Mongoose（Model）
+    find() 返回 Query 实例，支持链式调用（无需手动 toArray ()），最终返回「Model 实例数组」；
+    findOne() 返回「Model 实例」（可直接调用 save()、remove() 等方法）；
+    按 ID 查询支持 findById('xxx')，自动转换 ObjectId；
+    投影支持字符串简写（更简洁）。
+    ```js
+      // 1. 查多条：链式调用，直接返回实例数组
+      const list = await AiImages.find({ uuid: 'xxx' })
+        .sort('-createTime') // 简写：-表示降序
+        .limit(10)
+        .select('photos uuid -_id'); // 投影简写：空格分隔字段，-排除
+
+      // 2. 按 ID 查单条（简化）
+      const doc = await AiImages.findById('60d21b4667d0d8992e610c85');
+
+      // 3. 查单条并操作（Model 实例特性）
+      if (doc) {
+        doc.photos.push('new-url'); // 直接修改实例
+        await doc.save(); // 保存修改（原生需单独调用 updateOne）
+      }
+    ```
+- 2.计数：countDocuments ()
+  - 差异点：两者方法名一致，但 Mongoose 废弃了旧的 count() 方法（推荐用 countDocuments()）；Mongoose 支持链式计数（先筛选再计数），原生需直接传条件。
+  - mongodb
+  ```js
+    // 统计 uuid 为 xxx 的文档数
+    const count = await AiImages.countDocuments({ uuid: 'xxx' });   
+  ```
+  - mongoose
+    ```js
+      // 方式1：直接传条件
+      const count1 = await AiImages.countDocuments({ uuid: 'xxx' });
+
+      // 方式2：链式计数（先筛选再计数，更灵活）
+      const count2 = await AiImages.find({ uuid: 'xxx' }).limit(100).countDocuments();
+    ```
+- 3.分页查询：skip () + limit ()
+  - 核心差异：原生需手动调用 toArray() 取结果；Mongoose 链式调用后直接 await，返回实例数组。
+  - MongoDB 原生
+    ```js
+      // 跳过前 10 条，取 20 条（第 2 页，每页 20 条）
+      const pageData = await AiImages.find({})
+        .sort({ createTime: -1 })
+        .skip(10 * 20) // 跳过前 N 条（页码-1 * 每页条数）
+        .limit(20)
+        .toArray();
+    ```
+  - Mongoose
+    ```js
+      const pageData = await AiImages.find({})
+      .sort('-createTime') // 简写降序
+      .skip(10 * 20)
+      .limit(20)
+      .select('uuid photos createTime'); // 只返回需要的字段
+    ```
+- 4.原子操作：findOneAndUpdate () /findOneAndDelete ()
+  - 关键差异：
+    返回值控制参数不同：Mongoose 用 new: true 返回更新后文档，原生用 returnDocument: 'after'；
+    Mongoose 支持 runValidators: true（触发 Schema 校验），原生无此特性；
+    Mongoose 默认返回「更新 / 删除前的文档」，原生默认返回「更新 / 删除后的文档」（需注意兼容）。
+  - MongoDB 原生
+    ```js
+    // 1. 查并更新：返回更新后的文档
+    const updatedDoc = await AiImages.findOneAndUpdate(
+      { uuid: 'xxx' }, // 条件
+      { $push: { photos: 'new-url' } }, // 更新操作（push 数组）
+      {
+        returnDocument: 'after', // 关键：返回更新后的文档（默认 after）
+        projection: { uuid: 1, photos: 1 } // 只返回指定字段
+      }
+    );
+
+    // 2. 查并删除：返回删除的文档
+    const deletedDoc = await AiImages.findOneAndDelete({ uuid: 'xxx' });
+    ```
+  - Mongoose
+    ```js
+      // 1. 查并更新：返回更新后的文档（需 new: true）
+      const updatedDoc = await AiImages.findOneAndUpdate(
+        { uuid: 'xxx' },
+        { $push: { photos: 'new-url' } },
+        {
+          new: true, // 关键：返回更新后的文档（默认 false，返回更新前）
+          runValidators: true, // 触发 Schema 校验（如 photos 必须是数组）
+          select: 'uuid photos'
+        }
+      );
+
+      // 2. 查并删除：默认返回删除前的文档（需返回删除后用 deleted: true）
+      const deletedDoc = await AiImages.findOneAndDelete(
+        { uuid: 'xxx' },
+        { deleted: true } // 返回删除后的文档（Mongoose 新增参数）
+      );
+    ```
+
+- 5.聚合查询：aggregate ()
+  - 差异点：方法名一致，但 Mongoose 支持将聚合结果转为 Model 实例（通过 model() 方法）；Mongoose 聚合中可使用 Schema 定义的虚拟字段、中间件，原生不支持。
+  - MongoDB
+    ```js
+      // 统计每个 uuid 对应的照片数量
+      const aggResult = await AiImages.aggregate([
+        { $group: { _id: '$uuid', photoCount: { $size: '$photos' } } }, // 按 uuid 分组，统计数组长度
+        { $sort: { photoCount: -1 } },
+        { $limit: 10 }
+      ]);
+      // 返回：[{ _id: 'uuid1', photoCount: 5 }, ...]（普通对象数组）
+    ```
+  - Mongoose
+    ```js
+      const aggResult = await AiImages.aggregate([
+        { $group: { _id: '$uuid', photoCount: { $size: '$photos' } } },
+        { $sort: { photoCount: -1 } },
+        { $limit: 10 }
+      ]).model(AiImages); // 可选：将结果转为 Model 实例（需确保字段匹配）
+
+      // 若聚合结果字段和 Schema 一致，可直接调用实例方法
+      aggResult.forEach(doc => {
+        console.log(doc._id, doc.photoCount);
+      });
+    ```
+- 6.去重查询：distinct ()
+  - 差异点：Mongoose 直接提供 distinct() 方法（返回去重后的数组）；原生需手动处理 Cursor 或用聚合，无直接的 distinct() 封装（注：部分版本支持，但推荐统一用聚合）。
+  - MongoDB 原生（推荐用聚合）
+  ```js
+    // 取所有不重复的 uuid
+    const uniqueUuids = await AiImages.aggregate([
+      { $group: { _id: '$uuid' } },
+      { $project: { _id: 0, uuid: '$_id' } }
+    ]).toArray().then(res => res.map(item => item.uuid));
+  ```
+  - mongoose
+    ```js
+      // 直接调用 distinct()，返回去重后的数组
+      const uniqueUuids = await AiImages.distinct('uuid', { photos: { $exists: true } });
+      // 第二个参数是条件：只取 photos 字段存在的文档的 uuid
+    ```
+- 三、核心差异总结（避坑关键）
+  - 返回值类型：
+    原生：普通对象 / 对象数组（无 Schema 关联，不能直接调用 Model 方法）；
+    Mongoose：Model 实例 / 实例数组（可直接调用 save()、remove() 等，自动触发校验）。
+  - 参数简化：
+    Mongoose 支持字符串简写（排序 sort('-createTime')、投影 select('uuid -_id')）；
+    原生需严格传对象格式。
+  - ID 处理：
+    Mongoose 自动将字符串 ID 转为 ObjectId（findById('xxx')）；
+    原生需手动 ObjectId('xxx') 转换。
+  - 校验与中间件：
+    Mongoose 所有查询 / 更新操作默认触发 Schema 校验、中间件（如 pre('save')）；
+    原生无校验，需手动处理数据合法性。
+  - 链式调用：
+    Mongoose 的 find() 返回 Query 实例，支持无限链式（find().sort().limit().select()）；
+    原生的 find() 返回 Cursor，链式方法有限（需最终 toArray() 取结果）。
+- 四、实用建议
+  - 若用 Mongoose：优先使用其封装方法（findById()、create()、findOneAndUpdate({ new: true })），享受 Schema 校验和便捷性；
+  - 若用原生驱动：需手动处理 ObjectId 转换、结果格式化，适合追求极致性能或复杂聚合场景；
+  - 避免混用：不要用 Mongoose Model 调用原生 insertOne()、deleteMany() 等方法（会绕过校验，且可能报错）；
+  - 查文档时：Mongoose 用 select() 过滤字段，原生用 projection 参数，不要混淆。

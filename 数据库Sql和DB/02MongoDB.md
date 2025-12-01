@@ -310,6 +310,7 @@ mongosh --host <hostname> --port <port> -u "testuser" -p "password123" --authent
   ```
 
 ## CRUD
+- ==注意：这是mongodb官方操作方式，后面用node+mongoose写数据库查询，使用model来crud数据库时，语法有所不同，例如insertOne在mongoose中用create代替(很特殊，但insertMany两者就都有)==
 ### 增
 - 增删改查的增: 向集合中插入数据 (insertOne/insertMany)
   ```shell
