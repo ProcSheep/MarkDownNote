@@ -31,6 +31,23 @@
     const class = await usersCollection.find({class: "1001"}).toArray()
   ```
   > 通过获取数据库集合，相当于获取到model+schema定义的model实例，可以通过它直接实现对数据库数据的增删改查，比如`find updateOne delete insertOne`等等操作
+- 1.2 给出另一个样例
+  ```js
+    // 创建本地数据库连接(暂时)
+    const mongoose = require('mongoose')
+    // 连接本地数据库的集合
+    const db = mongoose.createConnection('mongodb://localhost:27018/test')
+    // 2. 监听连接成功事件
+    db.on('connected', async () => {
+      try {
+        // 连接就绪后执行查询
+        const data = await db.collection('aireplaies').find().toArray()
+        console.log('查询结果：', data)
+      } catch (err) {
+        console.error('查询失败：', err)
+      }
+    })
+  ```
 - ==toArray() 方法==将聚合管道的结果转换为数组，方便后续处理。
   - 没有toArray，node在数据库查询中返回的是一个 MongoDB 游标对象（Cursor），而不是直接的数据结果，游标是一种特殊的对象，它指向查询结果集，但并不立即包含所有数据
   - ==MongoDB 使用游标的设计是为了高效处理大量数据，避免一次性将所有数据加载到内存==,游标允许按需获取数据，但在这个分页查询场景中，我们需要一次性获取当前页的所有数据
@@ -273,10 +290,10 @@
 - 2.计数：countDocuments ()
   - 差异点：两者方法名一致，但 Mongoose 废弃了旧的 count() 方法（推荐用 countDocuments()）；Mongoose 支持链式计数（先筛选再计数），原生需直接传条件。
   - mongodb
-  ```js
-    // 统计 uuid 为 xxx 的文档数
-    const count = await AiImages.countDocuments({ uuid: 'xxx' });   
-  ```
+    ```js
+      // 统计 uuid 为 xxx 的文档数
+      const count = await AiImages.countDocuments({ uuid: 'xxx' });   
+    ```
   - mongoose
     ```js
       // 方式1：直接传条件

@@ -1505,6 +1505,47 @@ mongosh --host <hostname> --port <port> -u "testuser" -p "password123" --authent
         lang: "js"
       }
     ```
+
+## **dayOfxxx**
+- 一个很方便的mongo内置api(`$dayOfMonth/$dayOfWeek/$dayOfYear`)，可以根据给出时间范围，对这个范围内每一天的数据进行处理，他会自动分割，并返回是那一天
+- 举例`$dayOfMonth` ==剩余2个的同理==
+  - 以介于 1 和 31 之间的数字返回某一日期的“月中的某一天”
+  ```js
+    // <dateExpression> 必须是解析为日期、时间戳或对象标识符的有效表达式。
+    { $dayOfMonth: <dateExpression> }
+  ```
+- shell脚本
+  ```shell
+    db["convers"].aggregate([
+      // 第一步：先过滤出 createdAt 是 Date 类型的文档（避免混合类型报错）
+      {
+        $match: {
+          // 时间范围：2025年12月1日-12月31日（UTC时间，和你数据中的createdAt时区一致）
+          createdAt: {
+            $gte: ISODate("2025-12-01T00:00:00.000Z"),
+            $lte: ISODate("2026-01-01T00:00:00.000Z")
+          }
+        }
+      },
+      {
+        $group: {
+          _id: { $dayOfMonth: "$createdAt" }, // 提取Date类型的createdAt的“几号”
+          count: { $sum: 1 } // 统计每天的聊天数（每个文档代表一次聊天会话）
+          // 可以对每组数据做更多操作.....
+        }
+      },
+      { $project: { _id: 0, day: "$_id", count: 1 } },
+      { $sort: { day: 1 } }
+    ])
+  ```
+  > 1.只要给出月份范围的Date数据，对createAt字段进行查询，就回自动拆分月份,使用group分组后即可对每一组进行数据查询和处理
+  > ==2.node代码同理，用这个聚合函数（略），注意是mongoose+Model模式还是mongodb模式==
+- 同理地,另外两个api的用法一样(代码略)
+  - `dayOfWeek`: 以 1（星期日）和 7（星期六）之间的数字形式返回以星期表示的日期。
+  - `dayOfYear`: 以介于 1 和 366 之间的数字形式返回返回日期的年月日。
+
+
+
 ## facet
 - `$facet` 是一个非常实用的阶段操作符，它的核心作用是：在同一个聚合管道中，对同一批输入文档并行执行多个独立的子管道（facet），并将每个子管道的结果汇总到一个文档中; ==允许你 “一次查询，完成多个统计任务”==
   ```json
