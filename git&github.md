@@ -229,7 +229,7 @@
   [![pEtV3C9.jpg](https://s21.ax1x.com/2025/03/07/pEtV3C9.jpg)](https://imgse.com/i/pEtV3C9)
 
 <!-- # Gitee -->
-# 常用命令(面试,待)
+# 常用命令(待)
 - 1.基础配置与初始化
   - 初始配置（首次使用必做）
     ```bash
@@ -265,3 +265,34 @@
       git push origin <本地分支名>     # 非首次推送
 
     ```
+# Fork相关操作
+- ==**什么是Fork**==
+  - Fork是GitHub上的一个功能，允许你复制别人的公开仓库到自己的GitHub账号下，复制后的仓库属于你自己，可以独立进行修改和管理，同时与原仓库保持一定的关联，方便后续向原仓库贡献代码。
+- ==**Fork的用途**==
+  - 参与开源项目：可以在自己Fork的仓库中修改代码，然后通过Pull Request（PR）向原仓库提交修改建议。
+  - 保存项目副本：对于感兴趣的项目，Fork后可以作为自己的备份，方便随时查看和学习。
+- ==**Fork操作步骤**==
+  1. 打开需要Fork的GitHub仓库页面。
+  2. 点击页面右上角的**Fork**按钮。
+  3. 在弹出的页面中，可选择所属的组织（默认是自己的账号），点击**Create fork**完成操作，此时你的GitHub账号下就会出现该仓库的副本。
+- ==**从Fork的仓库克隆到本地**==
+  - 进入自己Fork后的仓库页面，点击**Code**按钮，复制SSH或HTTPS地址。
+  - 在本地终端执行`git clone <复制的地址>`，即可将Fork的仓库克隆到本地进行修改。
+- ==**与原仓库同步更新**==
+  - 当原仓库有新的提交时，为了保持自己Fork的仓库与原仓库同步，需要进行如下操作：
+    1. 关联原仓库作为上游仓库（upstream）：`git remote add upstream <原仓库的地址>`
+    2. 查看远程仓库关联情况：`git remote -v`，此时会显示origin（自己Fork的仓库）和upstream（原仓库）
+    3. 拉取原仓库的最新代码：`git fetch upstream`
+    4. 切换到本地主分支（通常是main）：`git checkout main`
+    5. 合并原仓库的主分支到本地主分支：`git merge upstream/main`
+    6. 推送同步后的代码到自己Fork的远程仓库：`git push origin main`
+- ==**通过Fork向原仓库提交代码（Pull Request）**==
+  1. 在自己Fork的仓库本地进行修改，并完成提交（`git add .`、`git commit -m "修改说明"`）
+  2. 将修改推送到自己Fork的远程仓库：`git push origin <分支名>`
+  3. 打开自己Fork的GitHub仓库页面，会看到一个**Compare & pull request**按钮，点击进入。
+  4. 在新页面中，填写PR的标题和描述，说明修改的内容和目的，然后点击**Create pull request**。
+  5. 原仓库的维护者会查看你的PR，若通过审核，会将你的修改合并到原仓库；若有问题，可能会提出修改意见，你需要根据意见在本地修改后再次推送，PR会自动更新。
+- ==**删除Fork的仓库**==
+  - 进入自己Fork的仓库页面，点击**Settings**。
+  - 拉到页面底部，找到**Danger Zone**，点击**Delete this repository**。
+  - 按照提示输入仓库名称进行确认，即可删除。
