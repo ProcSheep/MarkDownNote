@@ -2497,6 +2497,128 @@
   ```
 ### 关于ES5和ES6在面向对象中使用
 - 我们的原则是用最新的,也就是ES6,这个更加靠近其它语言规范,但是ES5可以让我们从底层了解到js的运行逻辑,这是知其所以然,在本单元中,class(ES6)就是把前面学的原型,对象等所有ES5一勺烩了打包成ES6语法糖,后面的继承亦如此,ES5知其所以然,实战中使用ES6.
+### static
+- class类中会使用到的静态方法static，简而言之就是类的全局变量，不会随着实例创建而携带，只能通过"类.字段/方法名字"来调用等，常用于==和类相关，但不依赖实例数据==的方法，比如
+  - 数据验证（检查用户输入是否合法）
+  - 实例创建的快捷方式（类似工厂函数）
+  - 常量 / 版本号等全局配置
+ 我将按「核心区别、调用方式、应用场景、避坑要点」梳理笔记，用 markdown 列表、表格优化排版，贴合已有标题的阅读逻辑。
+
+# class 中 static 关键字笔记
+
+**一、核心定义**：static 用于定义类的静态成员（字段/方法），将成员绑定到「类本身」而非类的实例，全局唯一、仅存一份，无需 new 创建实例即可调用。
+
+**二、静态成员 vs 实例成员（核心差异）**
+
+|特性|static 静态成员|实例成员|
+|---|---|---|
+|绑定对象|类本身（如 User 类）|类的实例（如 user1、user2）|
+|调用方式|类名.成员名（User.version）|实例名.成员名（user1.name）|
+|内存占用|全局唯一，仅存一份|每个实例单独复制一份|
+|this 指向|指向类本身|指向当前实例|
+|依赖 new|无需 new，直接调用|必须 new 实例后才能调用|
+**三、基础示例与调用规范**
+
+```javascript
+
+class User {
+  // 静态字段
+  static version = '1.0.0';
+  // 实例字段（通过构造函数初始化）
+  constructor(name) {
+    this.name = name;
+  }
+  // 静态方法
+  static getVersion() {
+    return this.version; // this 指向 User 类
+  }
+  // 实例方法
+  sayHi() {
+    console.log(`Hi, ${this.name}`); // this 指向实例
+  }
+}
+
+// 静态成员调用（类名.xxx）
+console.log(User.version); // 1.0.0
+console.log(User.getVersion()); // 1.0.0
+
+// 实例成员调用（实例.xxx）
+const user1 = new User('张三');
+user1.sayHi(); // Hi, 张三
+console.log(user1.name); // 张三
+
+// 错误调用
+console.log(user1.version); // undefined（实例不能访问静态字段）
+User.sayHi(); // 报错（类不能访问实例方法）
+```
+
+**四、实际应用场景**
+
+1. **工具/辅助方法**：封装与类相关、不依赖实例数据的通用逻辑，如数据验证、格式处理。
+        `class User {
+  constructor(name, age) {
+    this.name = name;
+    this.age = age;
+  }
+  // 静态验证方法（无需实例，直接调用）
+  static validateAge(age) {
+    return age >= 18 && age <= 120;
+  }
+}
+console.log(User.validateAge(20)); // true`
+
+2. **单例模式实现**：用静态字段存储唯一实例，静态方法提供全局访问入口，比全局变量更优雅。
+        `class Database {
+  static instance = null;
+  constructor() {
+    if (Database.instance) return Database.instance;
+    this.connection = 'mongodb://localhost';
+    Database.instance = this;
+  }
+  // 静态方法获取单例
+  static getInstance() {
+    if (!Database.instance) Database.instance = new Database();
+    return Database.instance;
+  }
+}
+const db = Database.getInstance(); // 无需 new，直接获取`
+
+3. **全局常量/配置**：存储与类相关的常量，避免全局变量污染，可搭配 Object.freeze 实现不可变。
+        `class ApiConfig {
+  static BASE_URL = 'https://api.example.com';
+  static TIMEOUT = 5000;
+  // 静态方法拼接地址
+  static getFullUrl(path) {
+    return `${this.BASE_URL}${path}`;
+  }
+}
+console.log(ApiConfig.getFullUrl('/user')); // 完整接口地址`
+
+**五、避坑注意事项**
+
+- 静态方法不能直接访问实例成员：静态方法的 this 指向类，无法通过 this 访问实例字段/方法；但实例方法可通过「类名.静态成员」访问静态内容。
+        `class User {
+  static version = '1.0';
+  constructor(name) {
+    this.name = name;
+  }
+  sayHi() {
+    console.log(`v${User.version}: ${this.name}`); // 实例方法访问静态字段
+  }
+}`
+
+- 静态字段默认可修改：如需不可变，需结合 Object.freeze 冻结对象。
+        `class Config {
+  static settings = Object.freeze({ apiUrl: 'xxx' });
+}
+Config.settings.apiUrl = 'yyy'; // 静默失败（严格模式报错）`
+
+- 静态成员不被实例继承：子类可继承父类静态成员（通过子类名调用），但子类实例仍无法访问。
+
+**六、核心总结**：static 本质是给类添加「全局属性/方法」，适用于不依赖实例数据的场景；普通实例成员是每个实例的「专属属性/方法」，依赖实例数据。根据是否需要实例化
+
+
+需要我帮你**精简冗余内容**，把笔记压缩成更易背诵的核心要点版吗？ 
 ### js中的多态(了解)
 - ==面向对象的三大特征:封装 继承 **多态**==
 - 多态: ==不同的数据类型进行同一操作表现不同的行为==
